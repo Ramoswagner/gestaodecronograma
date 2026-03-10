@@ -2,19 +2,12 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Pulse BI | Enterprise Dashboard</title>
+    <title>Project Pulse BI | Auto-Refresh Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-
+        /* Mesmo CSS anterior... */
         :root {
             --primary: #1B4D3E;
             --primary-light: #2A6E5A;
@@ -49,6 +42,7 @@
             background: linear-gradient(135deg, #F5F7FA 0%, #F0F4F8 100%);
             min-height: 100vh;
             padding: 24px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         .container {
@@ -56,7 +50,6 @@
             margin: 0 auto;
         }
 
-        /* Header Moderno */
         .header {
             background: var(--white);
             backdrop-filter: blur(10px);
@@ -115,56 +108,41 @@
             font-weight: 500;
         }
 
-        .input-area {
-            display: flex;
-            gap: 12px;
+        .url-display {
             background: var(--gray-100);
-            padding: 8px;
+            padding: 8px 20px;
             border-radius: var(--radius-xl);
             border: 1px solid var(--gray-300);
-        }
-
-        .input-area input {
-            padding: 14px 20px;
-            border: none;
-            background: transparent;
-            width: 400px;
-            font-size: 14px;
-            color: var(--gray-800);
-            outline: none;
-        }
-
-        .input-area input::placeholder {
-            color: var(--gray-500);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: var(--radius-lg);
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 8px;
-            box-shadow: var(--shadow-md);
+            gap: 12px;
+            max-width: 500px;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-            filter: brightness(1.1);
+        .url-display span {
+            color: var(--gray-600);
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .btn-primary i {
-            font-size: 16px;
+        .auto-refresh-badge {
+            background: var(--primary-soft);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        /* KPI Cards */
+        .auto-refresh-badge i {
+            font-size: 14px;
+        }
+
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -186,17 +164,6 @@
         .kpi-card:hover {
             transform: translateY(-4px);
             box-shadow: var(--shadow-xl);
-        }
-
-        .kpi-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, transparent 50%, rgba(27, 77, 62, 0.03) 100%);
-            border-radius: 50%;
         }
 
         .kpi-header {
@@ -246,7 +213,6 @@
         .trend-up { color: var(--success); }
         .trend-down { color: var(--danger); }
 
-        /* Dashboard Grid */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -261,10 +227,6 @@
             box-shadow: var(--shadow-md);
             border: 1px solid var(--gray-200);
             transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            box-shadow: var(--shadow-lg);
         }
 
         .card-header {
@@ -297,14 +259,12 @@
             font-weight: 600;
         }
 
-        /* Gráficos */
         .chart-container {
             position: relative;
             height: 250px;
             width: 100%;
         }
 
-        /* Tabela */
         .table-container {
             grid-column: span 3;
             background: var(--white);
@@ -347,6 +307,28 @@
             border-color: var(--gray-400);
         }
 
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: var(--radius-lg);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            filter: brightness(1.1);
+        }
+
         .table-wrapper {
             overflow-x: auto;
             border-radius: var(--radius-lg);
@@ -379,7 +361,6 @@
             background: var(--gray-50);
         }
 
-        /* Status Indicators */
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -427,14 +408,6 @@
             transition: width 0.3s ease;
         }
 
-        .progress-fill.warning {
-            background: linear-gradient(90deg, var(--warning), #F7DC6F);
-        }
-
-        .progress-fill.danger {
-            background: linear-gradient(90deg, var(--danger), #F1948A);
-        }
-
         .over-budget {
             color: var(--danger);
             font-weight: 600;
@@ -443,95 +416,18 @@
             border-radius: var(--radius-sm);
         }
 
-        /* Tooltips e modais */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: help;
+        .refresh-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-600);
         }
 
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            background: var(--gray-900);
-            color: white;
-            padding: 8px 12px;
-            border-radius: var(--radius-md);
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            font-size: 12px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Responsividade */
-        @media (max-width: 1400px) {
-            .kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .table-container {
-                grid-column: span 1;
-            }
-            
-            .header {
-                flex-direction: column;
-                gap: 20px;
-            }
-            
-            .input-area {
-                width: 100%;
-            }
-            
-            .input-area input {
-                width: 100%;
-            }
-        }
-
-        /* Animações */
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .kpi-card, .card, .table-container {
-            animation: slideIn 0.5s ease forwards;
-        }
-
-        .loading {
-            position: relative;
-            pointer-events: none;
-            opacity: 0.7;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 30px;
-            height: 30px;
-            border: 3px solid var(--gray-300);
+        .refresh-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--gray-300);
             border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -540,12 +436,98 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .config-panel {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .config-item label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .config-item select {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            color: var(--gray-800);
+            background: var(--white);
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--gray-400);
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .last-update {
+            margin-left: auto;
+            font-size: 13px;
+            color: var(--gray-600);
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Header Moderno -->
+    <!-- Header -->
     <div class="header">
         <div class="logo-area">
             <div class="logo-icon">
@@ -553,15 +535,54 @@
             </div>
             <div class="logo-text">
                 <h1>Project Pulse BI</h1>
-                <p>Enterprise Dashboard • Real-time Analytics</p>
+                <p>Auto-Refresh • Real-time Analytics</p>
             </div>
         </div>
-        <div class="input-area">
-            <input type="text" id="csvUrl" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
-            <button class="btn-primary" onclick="fetchData()">
-                <i class="fas fa-sync-alt"></i>
-                Atualizar Dashboard
+        <div class="auto-refresh-badge">
+            <i class="fas fa-sync-alt"></i>
+            <span id="refreshStatus">Auto-Refresh Ativo</span>
+        </div>
+    </div>
+
+    <!-- Painel de Configuração -->
+    <div class="config-panel">
+        <div class="config-item">
+            <i class="fas fa-link" style="color: var(--primary);"></i>
+            <span style="font-size: 14px; color: var(--gray-700);">URL da Planilha:</span>
+            <div class="url-display">
+                <span id="savedUrl">Nenhuma URL configurada</span>
+            </div>
+        </div>
+        
+        <div class="config-item">
+            <label>Auto-Refresh:</label>
+            <label class="toggle-switch">
+                <input type="checkbox" id="autoRefreshToggle" checked onchange="toggleAutoRefresh()">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        
+        <div class="config-item">
+            <label>Intervalo:</label>
+            <select id="refreshInterval" onchange="changeInterval()">
+                <option value="30">30 segundos</option>
+                <option value="60" selected>1 minuto</option>
+                <option value="300">5 minutos</option>
+                <option value="600">10 minutos</option>
+                <option value="1800">30 minutos</option>
+                <option value="3600">1 hora</option>
+            </select>
+        </div>
+        
+        <div class="config-item">
+            <button class="btn-outline" onclick="saveConfig()">
+                <i class="fas fa-save"></i>
+                Salvar Configuração
             </button>
+        </div>
+        
+        <div class="last-update" id="lastUpdate">
+            Última atualização: --
         </div>
     </div>
 
@@ -602,7 +623,7 @@
             </div>
             <div class="kpi-value" id="avgProgress">0%</div>
             <div class="kpi-trend">
-                <span id="projetosAtivos"><i class="fas fa-play-circle"></i> Projetos em andamento</span>
+                <span id="projetosAtivos"><i class="fas fa-play-circle"></i> Em andamento: 0</span>
             </div>
         </div>
 
@@ -620,9 +641,8 @@
         </div>
     </div>
 
-    <!-- Grid Principal -->
+    <!-- Dashboard Grid -->
     <div class="dashboard-grid">
-        <!-- Gráfico de Saúde Financeira -->
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-chart-pie"></i> Saúde Financeira</h3>
@@ -633,7 +653,6 @@
             </div>
         </div>
 
-        <!-- Gráfico de Distribuição de Status -->
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-clock"></i> Status dos Prazos</h3>
@@ -644,7 +663,6 @@
             </div>
         </div>
 
-        <!-- Card de Insights Rápidos -->
         <div class="card">
             <div class="card-header">
                 <h3><i class="fas fa-lightbulb"></i> Insights Rápidos</h3>
@@ -684,7 +702,7 @@
         </div>
     </div>
 
-    <!-- Tabela de Atividades -->
+    <!-- Tabela -->
     <div class="table-container">
         <div class="table-header">
             <h3><i class="fas fa-list-ul"></i> Detalhamento das Atividades</h3>
@@ -693,9 +711,9 @@
                     <i class="fas fa-download"></i>
                     Exportar CSV
                 </button>
-                <button class="btn-outline" onclick="filterTable()">
-                    <i class="fas fa-filter"></i>
-                    Filtrar
+                <button class="btn-outline" onclick="refreshNow()">
+                    <i class="fas fa-sync-alt"></i>
+                    Atualizar Agora
                 </button>
             </div>
         </div>
@@ -720,7 +738,7 @@
                     <tr>
                         <td colspan="11" style="text-align: center; padding: 60px;">
                             <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--gray-400); margin-bottom: 16px; display: block;"></i>
-                            <span style="color: var(--gray-600);">Insira o link da planilha e clique em Atualizar Dashboard</span>
+                            <span style="color: var(--gray-600);">Configure a URL da planilha para começar</span>
                         </td>
                     </tr>
                 </tbody>
@@ -730,181 +748,301 @@
 </div>
 
 <script>
+// Variáveis globais
 let financeChart = null;
 let statusChart = null;
+let refreshTimer = null;
+let isRefreshing = false;
+let savedUrl = '';
+let autoRefreshEnabled = true;
+let refreshIntervalSeconds = 60;
 
-async function fetchData() {
-    const url = document.getElementById('csvUrl').value;
-    if(!url.includes("output=csv")) {
-        showNotification('Por favor, use o link de "Publicar na web" do Google Sheets no formato CSV', 'warning');
+// Configuração inicial
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfig();
+    startAutoRefresh();
+});
+
+function loadConfig() {
+    // Carregar configurações salvas
+    const config = JSON.parse(localStorage.getItem('dashboardConfig')) || {};
+    
+    if (config.url) {
+        savedUrl = config.url;
+        document.getElementById('savedUrl').textContent = config.url.substring(0, 50) + '...';
+        fetchData(); // Carregar dados automaticamente
+    }
+    
+    if (config.autoRefresh !== undefined) {
+        autoRefreshEnabled = config.autoRefresh;
+        document.getElementById('autoRefreshToggle').checked = autoRefreshEnabled;
+        document.getElementById('refreshStatus').textContent = autoRefreshEnabled ? 'Auto-Refresh Ativo' : 'Auto-Refresh Inativo';
+    }
+    
+    if (config.interval) {
+        refreshIntervalSeconds = config.interval;
+        document.getElementById('refreshInterval').value = refreshIntervalSeconds;
+    }
+}
+
+function saveConfig() {
+    const config = {
+        url: savedUrl,
+        autoRefresh: autoRefreshEnabled,
+        interval: refreshIntervalSeconds
+    };
+    
+    localStorage.setItem('dashboardConfig', JSON.stringify(config));
+    showNotification('Configurações salvas com sucesso!', 'success');
+    
+    // Reiniciar auto-refresh com nova configuração
+    if (autoRefreshEnabled) {
+        startAutoRefresh();
+    }
+}
+
+function toggleAutoRefresh() {
+    autoRefreshEnabled = document.getElementById('autoRefreshToggle').checked;
+    document.getElementById('refreshStatus').textContent = autoRefreshEnabled ? 'Auto-Refresh Ativo' : 'Auto-Refresh Inativo';
+    
+    if (autoRefreshEnabled) {
+        startAutoRefresh();
+    } else {
+        stopAutoRefresh();
+    }
+    
+    saveConfig();
+}
+
+function changeInterval() {
+    refreshIntervalSeconds = parseInt(document.getElementById('refreshInterval').value);
+    if (autoRefreshEnabled) {
+        startAutoRefresh(); // Reiniciar com novo intervalo
+    }
+    saveConfig();
+}
+
+function startAutoRefresh() {
+    stopAutoRefresh();
+    if (autoRefreshEnabled && savedUrl) {
+        refreshTimer = setInterval(() => {
+            fetchData(true); // true = refresh silencioso
+        }, refreshIntervalSeconds * 1000);
+    }
+}
+
+function stopAutoRefresh() {
+    if (refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+    }
+}
+
+async function fetchData(silent = false) {
+    if (!savedUrl) {
+        if (!silent) {
+            promptForUrl();
+        }
         return;
     }
 
-    // Show loading state
-    document.querySelector('.btn-primary').classList.add('loading');
-    
+    if (isRefreshing) return;
+    isRefreshing = true;
+
     try {
+        if (!silent) {
+            document.querySelector('.btn-outline:last-child i').classList.add('fa-spin');
+        }
+
+        // Adicionar timestamp para evitar cache
+        const url = savedUrl + (savedUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+        
         const response = await fetch(url);
         const csvData = await response.text();
         
-        const rows = parseCSV(csvData);
-        const dataRows = rows.slice(1);
+        processData(csvData);
         
-        let totalPrevisto = 0;
-        let totalReal = 0;
-        let progressoSoma = 0;
-        let projetosAtivos = 0;
-        let atividadesConcluidas = 0;
-        let tableHtml = "";
+        // Atualizar timestamp
+        document.getElementById('lastUpdate').textContent = 'Última atualização: ' + new Date().toLocaleTimeString();
         
-        let emDia = 0;
-        let atrasados = 0;
-        let naoIniciados = 0;
-        
-        let projetosAcimaOrcamento = 0;
-        let maiorProgresso = { nome: '', progresso: 0 };
+        if (!silent) {
+            showNotification('Dados atualizados com sucesso!', 'success');
+        }
 
-        dataRows.forEach(cols => {
-            if(cols.length < 10) return;
-            
-            const id = cols[0] || '-';
-            const atividade = cols[1] || '-';
-            const responsavel = cols[2] || '-';
-            const inicioPrevisto = cols[3] || '-';
-            const terminoPrevisto = cols[4] || '-';
-            const inicioReal = cols[5] || '-';
-            const terminoReal = cols[6] || '-';
-            const custoPrevisto = parseFloat(cols[7]) || 0;
-            const custoReal = parseFloat(cols[8]) || 0;
-            const progresso = parseInt(cols[9]) || 0;
-            
-            totalPrevisto += custoPrevisto;
-            totalReal += custoReal;
-            
-            if(custoReal > custoPrevisto) projetosAcimaOrcamento++;
-            
-            if(progresso > 0) {
-                progressoSoma += progresso;
-                projetosAtivos++;
-            }
-            
-            if(progresso === 100) atividadesConcluidas++;
-            
-            if(progresso > maiorProgresso.progresso) {
-                maiorProgresso = { nome: atividade, progresso };
-            }
-            
-            const isOver = custoReal > custoPrevisto ? 'over-budget' : '';
-            
-            // Determinar status
-            let statusClass = '';
-            let statusText = '';
-            
-            if(progresso === 0) {
-                naoIniciados++;
-                statusClass = 'status-nao-iniciado';
-                statusText = 'Não iniciado';
-            } else if(progresso === 100 || (terminoReal && terminoReal !== '-' && terminoReal.trim() !== '')) {
-                emDia++;
-                statusClass = 'status-em-dia';
-                statusText = 'Concluído';
-            } else {
-                // Verificar atraso
-                const hoje = new Date();
-                if(terminoPrevisto && terminoPrevisto !== '-') {
-                    const dataTermino = parseDate(terminoPrevisto);
-                    if(dataTermino && hoje > dataTermino && progresso < 100) {
-                        atrasados++;
-                        statusClass = 'status-atrasado';
-                        statusText = 'Atrasado';
-                    } else {
-                        emDia++;
-                        statusClass = 'status-em-dia';
-                        statusText = 'Em dia';
-                    }
+    } catch (e) {
+        console.error(e);
+        if (!silent) {
+            showNotification('Erro ao carregar dados. Verifique a URL.', 'error');
+        }
+    } finally {
+        isRefreshing = false;
+        if (!silent) {
+            document.querySelector('.btn-outline:last-child i').classList.remove('fa-spin');
+        }
+    }
+}
+
+function promptForUrl() {
+    const url = prompt('Cole o link do CSV publicado do Google Sheets:');
+    if (url && url.includes('output=csv')) {
+        savedUrl = url;
+        document.getElementById('savedUrl').textContent = url.substring(0, 50) + '...';
+        fetchData();
+        saveConfig();
+        startAutoRefresh();
+    } else {
+        alert('URL inválida! Certifique-se de usar o link de "Publicar na web" no formato CSV.');
+    }
+}
+
+function processData(csvData) {
+    const rows = parseCSV(csvData);
+    const dataRows = rows.slice(1);
+    
+    let totalPrevisto = 0;
+    let totalReal = 0;
+    let progressoSoma = 0;
+    let projetosAtivos = 0;
+    let atividadesConcluidas = 0;
+    let tableHtml = "";
+    
+    let emDia = 0;
+    let atrasados = 0;
+    let naoIniciados = 0;
+    
+    let projetosAcimaOrcamento = 0;
+    let maiorProgresso = { nome: '', progresso: 0 };
+
+    dataRows.forEach(cols => {
+        if(cols.length < 10) return;
+        
+        const id = cols[0] || '-';
+        const atividade = cols[1] || '-';
+        const responsavel = cols[2] || '-';
+        const inicioPrevisto = cols[3] || '-';
+        const terminoPrevisto = cols[4] || '-';
+        const inicioReal = cols[5] || '-';
+        const terminoReal = cols[6] || '-';
+        const custoPrevisto = parseFloat(cols[7]) || 0;
+        const custoReal = parseFloat(cols[8]) || 0;
+        const progresso = parseInt(cols[9]) || 0;
+        
+        totalPrevisto += custoPrevisto;
+        totalReal += custoReal;
+        
+        if(custoReal > custoPrevisto) projetosAcimaOrcamento++;
+        
+        if(progresso > 0 && progresso < 100) {
+            progressoSoma += progresso;
+            projetosAtivos++;
+        }
+        
+        if(progresso === 100) atividadesConcluidas++;
+        
+        if(progresso > maiorProgresso.progresso) {
+            maiorProgresso = { nome: atividade, progresso };
+        }
+        
+        const isOver = custoReal > custoPrevisto ? 'over-budget' : '';
+        
+        // Determinar status
+        let statusClass = '';
+        let statusText = '';
+        
+        if(progresso === 0) {
+            naoIniciados++;
+            statusClass = 'status-nao-iniciado';
+            statusText = 'Não iniciado';
+        } else if(progresso === 100) {
+            emDia++;
+            statusClass = 'status-em-dia';
+            statusText = 'Concluído';
+        } else {
+            const hoje = new Date();
+            if(terminoPrevisto && terminoPrevisto !== '-') {
+                const dataTermino = parseDate(terminoPrevisto);
+                if(dataTermino && hoje > dataTermino) {
+                    atrasados++;
+                    statusClass = 'status-atrasado';
+                    statusText = 'Atrasado';
                 } else {
                     emDia++;
                     statusClass = 'status-em-dia';
                     statusText = 'Em dia';
                 }
+            } else {
+                emDia++;
+                statusClass = 'status-em-dia';
+                statusText = 'Em dia';
             }
-            
-            // Determinar cor da barra de progresso
-            let progressClass = '';
-            if(progresso < 30) progressClass = 'danger';
-            else if(progresso < 70) progressClass = 'warning';
+        }
 
-            tableHtml += `
-                <tr>
-                    <td><span style="font-weight: 600; color: var(--gray-700);">${id}</span></td>
-                    <td><strong>${atividade}</strong></td>
-                    <td>${responsavel}</td>
-                    <td>${formatDate(inicioPrevisto)}</td>
-                    <td>${formatDate(terminoPrevisto)}</td>
-                    <td>${formatDate(inicioReal)}</td>
-                    <td>${formatDate(terminoReal)}</td>
-                    <td>${formatMoney(custoPrevisto)}</td>
-                    <td class="${isOver}">${formatMoney(custoReal)}</td>
-                    <td>
-                        <div class="progress-bar">
-                            <div class="progress-track">
-                                <div class="progress-fill ${progressClass}" style="width: ${progresso}%"></div>
-                            </div>
-                            <span style="font-size: 12px; font-weight: 600;">${progresso}%</span>
+        tableHtml += `
+            <tr>
+                <td><span style="font-weight: 600; color: var(--gray-700);">${id}</span></td>
+                <td><strong>${atividade}</strong></td>
+                <td>${responsavel}</td>
+                <td>${formatDate(inicioPrevisto)}</td>
+                <td>${formatDate(terminoPrevisto)}</td>
+                <td>${formatDate(inicioReal)}</td>
+                <td>${formatDate(terminoReal)}</td>
+                <td>${formatMoney(custoPrevisto)}</td>
+                <td class="${isOver}">${formatMoney(custoReal)}</td>
+                <td>
+                    <div class="progress-bar">
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: ${progresso}%"></div>
                         </div>
-                    </td>
-                    <td>
-                        <span class="status-badge ${statusClass}">
-                            <i class="fas ${getStatusIcon(statusText)}"></i>
-                            ${statusText}
-                        </span>
-                    </td>
-                </tr>`;
-        });
+                        <span style="font-size: 12px; font-weight: 600;">${progresso}%</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="status-badge ${statusClass}">
+                        <i class="fas ${getStatusIcon(statusText)}"></i>
+                        ${statusText}
+                    </span>
+                </td>
+            </tr>`;
+    });
 
-        // Atualizar tabela
-        document.getElementById('tableBody').innerHTML = tableHtml;
-        
-        // Atualizar KPIs
-        document.getElementById('totalPrevisto').innerText = formatMoney(totalPrevisto);
-        document.getElementById('totalReal').innerText = formatMoney(totalReal);
-        
-        const mediaProgresso = projetosAtivos > 0 ? Math.round(progressoSoma / projetosAtivos) : 0;
-        document.getElementById('avgProgress').innerText = mediaProgresso + '%';
-        
-        document.getElementById('totalAtividades').innerText = dataRows.length;
-        document.getElementById('atividadesConcluidas').innerHTML = `<i class="fas fa-check-circle"></i> Concluídas: ${atividadesConcluidas}`;
-        document.getElementById('projetosAtivos').innerHTML = `<i class="fas fa-play-circle"></i> Em andamento: ${projetosAtivos}`;
-        
-        // Variação orçamentária
-        const variacao = totalPrevisto > 0 ? ((totalReal - totalPrevisto) / totalPrevisto * 100).toFixed(1) : 0;
-        const variacaoElement = document.getElementById('variacaoOrcamento');
-        variacaoElement.innerHTML = `<i class="fas ${variacao > 0 ? 'fa-arrow-up trend-down' : 'fa-arrow-down trend-up'}"></i> ${Math.abs(variacao)}% ${variacao > 0 ? 'acima' : 'abaixo'}`;
-        variacaoElement.className = variacao > 0 ? 'trend-down' : 'trend-up';
-        
-        document.getElementById('percentualGasto').innerText = totalPrevisto > 0 ? ((totalReal / totalPrevisto) * 100).toFixed(1) + '% do orçamento' : '0% do orçamento';
-        
-        document.getElementById('totalStatus').innerText = `${emDia + atrasados + naoIniciados} atividades`;
-        
-        // Insights
-        document.getElementById('riscosText').innerHTML = `${projetosAcimaOrcamento} projetos acima do orçamento | ${atrasados} atrasados`;
-        document.getElementById('destaqueText').innerHTML = maiorProgresso.nome ? `${maiorProgresso.nome} - ${maiorProgresso.progresso}% concluído` : 'Nenhum destaque';
-        
-        const performance = totalPrevisto > 0 ? ((totalPrevisto - totalReal) / totalPrevisto * 100).toFixed(1) : 0;
-        document.getElementById('performanceText').innerHTML = `Orçamento: ${performance}% disponível`;
+    // Atualizar tabela
+    document.getElementById('tableBody').innerHTML = tableHtml;
+    
+    // Atualizar KPIs
+    document.getElementById('totalPrevisto').innerText = formatMoney(totalPrevisto);
+    document.getElementById('totalReal').innerText = formatMoney(totalReal);
+    
+    const mediaProgresso = projetosAtivos > 0 ? Math.round(progressoSoma / projetosAtivos) : 0;
+    document.getElementById('avgProgress').innerText = mediaProgresso + '%';
+    
+    document.getElementById('totalAtividades').innerText = dataRows.length;
+    document.getElementById('atividadesConcluidas').innerHTML = `<i class="fas fa-check-circle"></i> Concluídas: ${atividadesConcluidas}`;
+    document.getElementById('projetosAtivos').innerHTML = `<i class="fas fa-play-circle"></i> Em andamento: ${projetosAtivos}`;
+    
+    // Variação orçamentária
+    const variacao = totalPrevisto > 0 ? ((totalReal - totalPrevisto) / totalPrevisto * 100).toFixed(1) : 0;
+    const variacaoElement = document.getElementById('variacaoOrcamento');
+    variacaoElement.innerHTML = `<i class="fas ${variacao > 0 ? 'fa-arrow-up trend-down' : 'fa-arrow-down trend-up'}"></i> ${Math.abs(variacao)}% ${variacao > 0 ? 'acima' : 'abaixo'}`;
+    variacaoElement.className = variacao > 0 ? 'trend-down' : 'trend-up';
+    
+    document.getElementById('percentualGasto').innerText = totalPrevisto > 0 ? ((totalReal / totalPrevisto) * 100).toFixed(1) + '% do orçamento' : '0% do orçamento';
+    
+    document.getElementById('totalStatus').innerText = `${emDia + atrasados + naoIniciados} atividades`;
+    
+    // Insights
+    document.getElementById('riscosText').innerHTML = `${projetosAcimaOrcamento} acima do orçamento | ${atrasados} atrasados`;
+    document.getElementById('destaqueText').innerHTML = maiorProgresso.nome ? `${maiorProgresso.nome} - ${maiorProgresso.progresso}%` : 'Nenhum destaque';
+    
+    const performance = totalPrevisto > 0 ? ((totalPrevisto - totalReal) / totalPrevisto * 100).toFixed(1) : 0;
+    document.getElementById('performanceText').innerHTML = `${performance}% do orçamento disponível`;
 
-        // Atualizar gráficos
-        updateFinanceChart(totalPrevisto, totalReal);
-        updateStatusChart(emDia, atrasados, naoIniciados);
+    // Atualizar gráficos
+    updateFinanceChart(totalPrevisto, totalReal);
+    updateStatusChart(emDia, atrasados, naoIniciados);
+}
 
-        showNotification('Dashboard atualizado com sucesso!', 'success');
-
-    } catch (e) {
-        console.error(e);
-        showNotification('Erro ao carregar dados. Verifique o link e as permissões.', 'error');
-    } finally {
-        document.querySelector('.btn-primary').classList.remove('loading');
-    }
+function refreshNow() {
+    fetchData(false);
 }
 
 function parseCSV(csvText) {
@@ -990,7 +1128,6 @@ function updateFinanceChart(previsto, real) {
     if(financeChart) financeChart.destroy();
     
     const saldo = Math.max(0, previsto - real);
-    const percentualGasto = previsto > 0 ? (real / previsto * 100).toFixed(1) : 0;
     
     financeChart = new Chart(ctx, {
         type: 'doughnut',
@@ -1094,12 +1231,7 @@ function exportToCSV() {
     showNotification('Arquivo exportado com sucesso!', 'success');
 }
 
-function filterTable() {
-    showNotification('Funcionalidade de filtro em desenvolvimento', 'info');
-}
-
 function showNotification(message, type) {
-    // Criar elemento de notificação
     const notification = document.createElement('div');
     notification.style.cssText = `
         position: fixed;
@@ -1131,7 +1263,7 @@ function showNotification(message, type) {
     }, 3000);
 }
 
-// Adicionar animação de slideOut
+// Adicionar estilos de animação
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideOut {
