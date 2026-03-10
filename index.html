@@ -2,136 +2,171 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Pulse BI</title>
+    <title>Project Pulse BI | Dashboard Real-Time</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg: #E7EAE0;      /* #99CD85 mais claro */
-            --primary: #63783D;  /* Verde escuro da sua paleta */
-            --accent: #7FA653;   /* Verde médio */
-            --dark: #233022;     /* Verde quase preto */
-            --white: #ffffff;
+            --bg: #f4f7f1;
+            --primary: #63783D;  /* Verde Escuro */
+            --accent: #7FA653;   /* Verde Médio */
+            --light-green: #CFE0BC;
+            --soft-green: #99CD85;
+            --dark: #233022;
         }
 
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); }
+        .container { max-width: 1200px; margin: auto; }
         
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        
-        .input-group { background: var(--white); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; width: 300px; }
-        button { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; transition: 0.3s; }
-        button:hover { background: var(--accent); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .input-area { display: flex; gap: 10px; }
+        input { padding: 12px; border: 2px solid var(--light-green); border-radius: 8px; width: 350px; outline: none; }
+        input:focus { border-color: var(--accent); }
+        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: var(--dark); transform: translateY(-2px); }
 
-        .dashboard-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-            gap: 20px; 
-        }
-
-        .card { background: var(--white); padding: 20px; border-radius: 15px; box-shadow: 0 10px 15px rgba(0,0,0,0.05); }
-        .kpi-value { font-size: 2rem; font-weight: bold; color: var(--primary); }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .full-width { grid-column: span 3; }
         
-        /* Estilo da Tabela */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; border-bottom: 2px solid var(--bg); padding: 10px; color: var(--accent); }
-        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        h3 { margin-top: 0; color: var(--primary); border-left: 4px solid var(--accent); padding-left: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: var(--light-green); color: var(--primary); padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        
+        .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .over-budget { color: #d32f2f; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>Project Pulse <span style="font-weight: 300;">| BI Dashboard</span></h1>
-    <div class="input-group">
-        <input type="text" id="sheetUrl" placeholder="Cole o link CSV do Google Sheets aqui">
-        <button onclick="updateDashboard()">Gerar Panorama</button>
-    </div>
-</div>
-
-<div class="dashboard-grid">
-    <div class="card">
-        <h3>Evolução Financeira</h3>
-        <canvas id="budgetChart"></canvas>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1 style="margin:0; color: var(--primary);">Project Pulse</h1>
+            <small>Panorama Dinâmico de Projetos</small>
+        </div>
+        <div class="input-area">
+            <input type="text" id="csvUrl" placeholder="Cole o link do CSV Publicado aqui...">
+            <button onclick="fetchData()">Atualizar BI</button>
+        </div>
     </div>
 
-    <div class="card">
-        <h3>Status das Atividades</h3>
-        <div class="kpi-value" id="totalTasks">0</div>
-        <p>Tarefas mapeadas no projeto</p>
-    </div>
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>Saúde Financeira</h3>
+            <canvas id="financeChart"></canvas>
+        </div>
 
-    <div class="card" style="grid-column: span 2;">
-        <h3>Lista de Atividades & Prazos</h3>
-        <table id="taskTable">
-            <thead>
-                <tr>
-                    <th>Atividade</th>
-                    <th>Responsável</th>
-                    <th>Início</th>
-                    <th>Término</th>
-                    <th>Gasto</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
+        <div class="card">
+            <h3>Progresso Geral</h3>
+            <div id="avgProgress" style="font-size: 48px; font-weight: bold; text-align: center; margin-top: 20px; color: var(--accent);">0%</div>
+            <p style="text-align: center; color: #666;">Média de conclusão do projeto</p>
+        </div>
+
+        <div class="card">
+            <h3>Tarefas</h3>
+            <div id="taskCount" style="font-size: 48px; font-weight: bold; text-align: center; margin-top: 20px; color: var(--primary);">0</div>
+            <p style="text-align: center; color: #666;">Total de atividades listadas</p>
+        </div>
+
+        <div class="card full-width">
+            <h3>Detalhamento das Atividades</h3>
+            <table id="projectTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Atividade</th>
+                        <th>Responsável</th>
+                        <th>Prazo</th>
+                        <th>Custo Real</th>
+                        <th>Progresso</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="6" style="text-align:center;">Insira o link e clique em Atualizar</td></tr>
                 </tbody>
-        </table>
+            </table>
+        </div>
     </div>
 </div>
 
 <script>
-    async function updateDashboard() {
-        const url = document.getElementById('sheetUrl').value;
-        if(!url) return alert("Por favor, insira o link do CSV publicado!");
+let financeChart = null;
 
-        try {
-            const response = await fetch(url);
-            const data = await response.text();
-            const rows = data.split('\n').slice(1); // Remove cabeçalho
+async function fetchData() {
+    const url = document.getElementById('csvUrl').value;
+    if(!url.includes("output=csv")) {
+        alert("Atenção: Use o link de 'Publicar na Web' com formato CSV!");
+        return;
+    }
 
-            let html = "";
-            let totalCustoPrevisto = 0;
-            let totalCustoReal = 0;
+    try {
+        const response = await fetch(url);
+        const csvData = await response.text();
+        const rows = csvData.split('\n').map(row => row.split(',')).slice(1);
 
-            rows.forEach(row => {
-                const cols = row.split(',');
-                if(cols.length < 8) return;
+        let totalPrevisto = 0;
+        let totalReal = 0;
+        let progressoSoma = 0;
+        let tableHtml = "";
 
-                html += `<tr>
-                    <td>**${cols[1]}**</td>
-                    <td>${cols[7]}</td>
-                    <td>${cols[3]}</td>
+        rows.forEach(cols => {
+            if(cols.length < 5) return;
+
+            const cPrevisto = parseFloat(cols[7]) || 0;
+            const cReal = parseFloat(cols[8]) || 0;
+            const prog = parseInt(cols[9]) || 0;
+            
+            totalPrevisto += cPrevisto;
+            totalReal += cReal;
+            progressoSoma += prog;
+
+            const isOver = cReal > cPrevisto ? 'over-budget' : '';
+
+            tableHtml += `
+                <tr>
+                    <td>${cols[0]}</td>
+                    <td><strong>${cols[1]}</strong></td>
+                    <td>${cols[2]}</td>
                     <td>${cols[4]}</td>
-                    <td>R$ ${cols[9]}</td>
+                    <td class="${isOver}">R$ ${cReal.toFixed(2)}</td>
+                    <td>
+                        <div style="background: #eee; border-radius: 5px; height: 10px; width: 100px;">
+                            <div style="background: var(--accent); width: ${prog}%; height: 100%; border-radius: 5px;"></div>
+                        </div>
+                        ${prog}%
+                    </td>
                 </tr>`;
-                
-                totalCustoPrevisto += parseFloat(cols[8] || 0);
-                totalCustoReal += parseFloat(cols[9] || 0);
-            });
-
-            document.getElementById('tableBody').innerHTML = html;
-            document.getElementById('totalTasks').innerText = rows.length;
-
-            renderChart(totalCustoPrevisto, totalCustoReal);
-
-        } catch (error) {
-            alert("Erro ao ler planilha. Verifique se ela foi 'Publicada na Web' como CSV.");
-        }
-    }
-
-    function renderChart(previsto, real) {
-        const ctx = document.getElementById('budgetChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Previsto', 'Real'],
-                datasets: [{
-                    label: 'Custos do Projeto',
-                    data: [previsto, real],
-                    backgroundColor: ['#7FA653', '#63783D']
-                }]
-            }
         });
+
+        document.getElementById('tableBody').innerHTML = tableHtml;
+        document.getElementById('taskCount').innerText = rows.length;
+        document.getElementById('avgProgress').innerText = Math.round(progressoSoma / rows.length) + "%";
+
+        updateChart(totalPrevisto, totalReal);
+
+    } catch (e) {
+        alert("Erro ao conectar com a planilha. Verifique as permissões.");
     }
+}
+
+function updateChart(previsto, real) {
+    const ctx = document.getElementById('financeChart').getContext('2d');
+    if(financeChart) financeChart.destroy();
+    
+    financeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Gasto Real', 'Orçamento Restante'],
+            datasets: [{
+                data: [real, previsto > real ? previsto - real : 0],
+                backgroundColor: ['#63783D', '#CFE0BC']
+            }]
+        },
+        options: { cutout: '70%' }
+    });
+}
 </script>
 </body>
 </html>
