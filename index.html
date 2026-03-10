@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Pulse BI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #E7EAE0;      /* #99CD85 mais claro */
+            --primary: #63783D;  /* Verde escuro da sua paleta */
+            --accent: #7FA653;   /* Verde médio */
+            --dark: #233022;     /* Verde quase preto */
+            --white: #ffffff;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        
+        .input-group { background: var(--white); padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; width: 300px; }
+        button { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: var(--accent); }
+
+        .dashboard-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 20px; 
+        }
+
+        .card { background: var(--white); padding: 20px; border-radius: 15px; box-shadow: 0 10px 15px rgba(0,0,0,0.05); }
+        .kpi-value { font-size: 2rem; font-weight: bold; color: var(--primary); }
+        
+        /* Estilo da Tabela */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; border-bottom: 2px solid var(--bg); padding: 10px; color: var(--accent); }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Project Pulse <span style="font-weight: 300;">| BI Dashboard</span></h1>
+    <div class="input-group">
+        <input type="text" id="sheetUrl" placeholder="Cole o link CSV do Google Sheets aqui">
+        <button onclick="updateDashboard()">Gerar Panorama</button>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <h3>Evolução Financeira</h3>
+        <canvas id="budgetChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Status das Atividades</h3>
+        <div class="kpi-value" id="totalTasks">0</div>
+        <p>Tarefas mapeadas no projeto</p>
+    </div>
+
+    <div class="card" style="grid-column: span 2;">
+        <h3>Lista de Atividades & Prazos</h3>
+        <table id="taskTable">
+            <thead>
+                <tr>
+                    <th>Atividade</th>
+                    <th>Responsável</th>
+                    <th>Início</th>
+                    <th>Término</th>
+                    <th>Gasto</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function updateDashboard() {
+        const url = document.getElementById('sheetUrl').value;
+        if(!url) return alert("Por favor, insira o link do CSV publicado!");
+
+        try {
+            const response = await fetch(url);
+            const data = await response.text();
+            const rows = data.split('\n').slice(1); // Remove cabeçalho
+
+            let html = "";
+            let totalCustoPrevisto = 0;
+            let totalCustoReal = 0;
+
+            rows.forEach(row => {
+                const cols = row.split(',');
+                if(cols.length < 8) return;
+
+                html += `<tr>
+                    <td>**${cols[1]}**</td>
+                    <td>${cols[7]}</td>
+                    <td>${cols[3]}</td>
+                    <td>${cols[4]}</td>
+                    <td>R$ ${cols[9]}</td>
+                </tr>`;
+                
+                totalCustoPrevisto += parseFloat(cols[8] || 0);
+                totalCustoReal += parseFloat(cols[9] || 0);
+            });
+
+            document.getElementById('tableBody').innerHTML = html;
+            document.getElementById('totalTasks').innerText = rows.length;
+
+            renderChart(totalCustoPrevisto, totalCustoReal);
+
+        } catch (error) {
+            alert("Erro ao ler planilha. Verifique se ela foi 'Publicada na Web' como CSV.");
+        }
+    }
+
+    function renderChart(previsto, real) {
+        const ctx = document.getElementById('budgetChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Previsto', 'Real'],
+                datasets: [{
+                    label: 'Custos do Projeto',
+                    data: [previsto, real],
+                    backgroundColor: ['#7FA653', '#63783D']
+                }]
+            }
+        });
+    }
+</script>
+</body>
+</html>
