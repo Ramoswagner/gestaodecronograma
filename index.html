@@ -2,65 +2,403 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Project Pulse BI | Auto-Refresh Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Pulse BI | Dashboard para Gestores</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Mesmo CSS anterior... */
         :root {
             --primary: #1B4D3E;
             --primary-light: #2A6E5A;
             --primary-soft: #E8F3F0;
             --accent: #F5B041;
+            --accent-soft: #FEF6E4;
             --success: #27AE60;
             --danger: #E74C3C;
             --warning: #F39C12;
             --info: #3498DB;
-            --dark: #1E2B2A;
-            --gray-900: #212529;
-            --gray-800: #343A40;
+            --dark: #111918;
+            --gray-900: #1A1F1E;
+            --gray-800: #2D3433;
             --gray-700: #495057;
             --gray-600: #6C757D;
-            --gray-500: #ADB5BD;
+            --gray-500: #9CA3AF;
             --gray-400: #CED4DA;
             --gray-300: #DEE2E6;
             --gray-200: #E9ECEF;
-            --gray-100: #F8F9FA;
+            --gray-100: #F4F6F5;
             --white: #FFFFFF;
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            --shadow-sm: 0 1px 3px rgba(27,77,62,0.06);
+            --shadow-md: 0 4px 16px rgba(27,77,62,0.08);
+            --shadow-lg: 0 8px 32px rgba(27,77,62,0.12);
+            --shadow-xl: 0 20px 60px rgba(27,77,62,0.16);
             --radius-sm: 6px;
             --radius-md: 10px;
             --radius-lg: 16px;
-            --radius-xl: 24px;
+            --radius-xl: 22px;
         }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            background: linear-gradient(135deg, #F5F7FA 0%, #F0F4F8 100%);
+            background: #F0F4F2;
             min-height: 100vh;
-            padding: 24px;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--gray-900);
         }
 
-        .container {
-            max-width: 1600px;
+        /* ===================== OVERLAY DE ONBOARDING ===================== */
+        #onboarding-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 25, 20, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        #onboarding-overlay.hidden {
+            display: none;
+        }
+
+        .onboarding-modal {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 680px;
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary) 0%, #1a5c48 60%, var(--primary-light) 100%);
+            padding: 36px 40px 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modal-header::before {
+            content: '';
+            position: absolute;
+            top: -40px; right: -40px;
+            width: 180px; height: 180px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50%;
+        }
+
+        .modal-header::after {
+            content: '';
+            position: absolute;
+            bottom: -60px; left: 30px;
+            width: 140px; height: 140px;
+            background: rgba(245,176,65,0.15);
+            border-radius: 50%;
+        }
+
+        .modal-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .modal-logo-icon {
+            width: 52px; height: 52px;
+            background: rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(255,255,255,0.25);
+            border-radius: var(--radius-lg);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent);
+            font-size: 22px;
+        }
+
+        .modal-logo-text {
+            font-family: 'Sora', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: -0.3px;
+        }
+
+        .modal-logo-text span {
+            display: block;
+            font-size: 12px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.65);
+            font-family: 'DM Sans', sans-serif;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .modal-header h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: white;
+            line-height: 1.3;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 8px;
+        }
+
+        .modal-header p {
+            color: rgba(255,255,255,0.7);
+            font-size: 15px;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+
+        .modal-body {
+            padding: 32px 40px;
+        }
+
+        /* Steps */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin-bottom: 28px;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+            position: relative;
+        }
+
+        .step:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 19px;
+            top: 44px;
+            bottom: 0;
+            width: 2px;
+            background: var(--gray-200);
+        }
+
+        .step-num {
+            width: 40px; height: 40px;
+            background: var(--primary-soft);
+            border: 2px solid var(--primary-light);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 15px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-content {
+            padding: 8px 0 24px;
+        }
+
+        .step-content strong {
+            display: block;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .step-content p {
+            color: var(--gray-600);
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+
+        .step-content code {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+        }
+
+        /* URL Input */
+        .url-input-group {
+            margin-bottom: 24px;
+        }
+
+        .url-input-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+        }
+
+        .url-input-wrapper {
+            display: flex;
+            gap: 0;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--gray-300);
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .url-input-wrapper:focus-within {
+            border-color: var(--primary);
+        }
+
+        .url-input-wrapper.valid {
+            border-color: var(--success);
+        }
+
+        .url-input-wrapper.invalid {
+            border-color: var(--danger);
+        }
+
+        .url-input-icon {
+            padding: 0 14px;
+            background: var(--gray-100);
+            border-right: 1px solid var(--gray-300);
+            display: flex; align-items: center;
+            color: var(--gray-600);
+            font-size: 15px;
+        }
+
+        #urlInput {
+            flex: 1;
+            padding: 13px 16px;
+            border: none;
+            outline: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            color: var(--gray-800);
+            background: white;
+        }
+
+        #urlInput::placeholder {
+            color: var(--gray-400);
+        }
+
+        .url-validation-msg {
+            font-size: 12.5px;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-height: 20px;
+        }
+
+        .url-validation-msg.success { color: var(--success); }
+        .url-validation-msg.error { color: var(--danger); }
+        .url-validation-msg.info { color: var(--info); }
+
+        /* Tip box */
+        .tip-box {
+            background: var(--accent-soft);
+            border: 1px solid rgba(245,176,65,0.4);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .tip-box i {
+            color: var(--accent);
+            font-size: 16px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .tip-box p {
+            font-size: 13px;
+            color: var(--gray-700);
+            line-height: 1.6;
+        }
+
+        .tip-box strong {
+            color: var(--gray-900);
+        }
+
+        /* Botões do modal */
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-modal-primary {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            padding: 15px 24px;
+            border-radius: var(--radius-md);
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(27,77,62,0.3);
+        }
+
+        .btn-modal-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(27,77,62,0.4);
+            filter: brightness(1.08);
+        }
+
+        .btn-modal-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-modal-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+            padding: 15px 20px;
+            border-radius: var(--radius-md);
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-modal-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        /* ===================== DASHBOARD ===================== */
+        .dashboard-wrapper {
+            padding: 24px 28px;
+            max-width: 1700px;
             margin: 0 auto;
         }
 
+        /* Header */
         .header {
             background: var(--white);
-            backdrop-filter: blur(10px);
             border-radius: var(--radius-xl);
-            padding: 24px 32px;
-            margin-bottom: 32px;
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255,255,255,0.5);
+            padding: 20px 28px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-md);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid rgba(27,77,62,0.08);
             position: relative;
             overflow: hidden;
         }
@@ -68,69 +406,79 @@
         .header::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary-light));
         }
 
         .logo-area {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
         }
 
         .logo-icon {
-            width: 48px;
-            height: 48px;
+            width: 44px; height: 44px;
             background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
+            border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent);
+            font-size: 20px;
             box-shadow: var(--shadow-md);
         }
 
         .logo-text h1 {
-            font-size: 28px;
+            font-family: 'Sora', sans-serif;
+            font-size: 20px;
             font-weight: 700;
             color: var(--gray-900);
-            margin-bottom: 4px;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.3px;
         }
 
         .logo-text p {
-            color: var(--gray-600);
-            font-size: 14px;
+            color: var(--gray-500);
+            font-size: 12.5px;
             font-weight: 500;
+            margin-top: 1px;
         }
 
-        .url-display {
-            background: var(--gray-100);
-            padding: 8px 20px;
-            border-radius: var(--radius-xl);
-            border: 1px solid var(--gray-300);
+        .header-right {
             display: flex;
             align-items: center;
-            gap: 12px;
-            max-width: 500px;
+            gap: 14px;
         }
 
-        .url-display span {
+        .url-pill {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            padding: 8px 16px;
+            border-radius: 100px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
             color: var(--gray-600);
-            font-size: 14px;
-            white-space: nowrap;
+            max-width: 280px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .url-pill:hover {
+            background: var(--primary-soft);
+            border-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .url-pill span {
             overflow: hidden;
             text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        .auto-refresh-badge {
+        .refresh-badge {
             background: var(--primary-soft);
             color: var(--primary);
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 100px;
             font-size: 13px;
             font-weight: 600;
@@ -139,116 +487,258 @@
             gap: 6px;
         }
 
-        .auto-refresh-badge i {
-            font-size: 14px;
+        .pulse-dot {
+            width: 8px; height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            position: relative;
         }
 
+        .pulse-dot::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 2px solid var(--success);
+            opacity: 0.4;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.4; }
+            100% { transform: scale(1.8); opacity: 0; }
+        }
+
+        /* Config bar */
+        .config-bar {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 14px 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .config-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13.5px;
+        }
+
+        .config-item label {
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .config-item select {
+            padding: 7px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--gray-800);
+            background: var(--white);
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: var(--gray-400);
+            transition: .3s;
+            border-radius: 22px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 3px; bottom: 3px;
+            background: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .toggle-slider { background-color: var(--primary); }
+        input:checked + .toggle-slider:before { transform: translateX(22px); }
+
+        .config-divider {
+            width: 1px; height: 24px;
+            background: var(--gray-200);
+        }
+
+        .last-update-info {
+            margin-left: auto;
+            font-size: 12.5px;
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-sm {
+            padding: 7px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--gray-300);
+            color: var(--gray-700);
+        }
+
+        .btn-ghost:hover {
+            background: var(--gray-100);
+        }
+
+        .btn-primary-sm {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary-sm:hover {
+            background: var(--primary-light);
+        }
+
+        /* KPIs */
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
-            margin-bottom: 32px;
+            gap: 16px;
+            margin-bottom: 20px;
         }
 
         .kpi-card {
             background: var(--white);
             border-radius: var(--radius-xl);
-            padding: 24px;
+            padding: 22px;
             box-shadow: var(--shadow-md);
-            border: 1px solid var(--gray-200);
+            border: 1px solid rgba(27,77,62,0.06);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
 
         .kpi-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
         }
+
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .kpi-card:hover::after { opacity: 1; }
 
         .kpi-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
+            align-items: flex-start;
+            margin-bottom: 14px;
         }
 
-        .kpi-title {
-            color: var(--gray-600);
-            font-size: 14px;
+        .kpi-label {
+            font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
+            color: var(--gray-500);
         }
 
         .kpi-icon {
-            width: 48px;
-            height: 48px;
+            width: 40px; height: 40px;
             background: var(--primary-soft);
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center;
             color: var(--primary);
-            font-size: 20px;
+            font-size: 17px;
         }
 
         .kpi-value {
-            font-size: 42px;
+            font-family: 'Sora', sans-serif;
+            font-size: 32px;
             font-weight: 700;
             color: var(--gray-900);
-            line-height: 1.2;
-            margin-bottom: 8px;
+            line-height: 1;
+            margin-bottom: 10px;
             letter-spacing: -1px;
         }
 
-        .kpi-trend {
+        .kpi-sub {
+            font-size: 13px;
+            color: var(--gray-500);
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: var(--gray-600);
+            gap: 5px;
         }
 
         .trend-up { color: var(--success); }
         .trend-down { color: var(--danger); }
 
-        .dashboard-grid {
+        /* Charts Grid */
+        .charts-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            margin-bottom: 32px;
+            gap: 16px;
+            margin-bottom: 20px;
         }
 
         .card {
             background: var(--white);
             border-radius: var(--radius-xl);
-            padding: 24px;
+            padding: 22px;
             box-shadow: var(--shadow-md);
-            border: 1px solid var(--gray-200);
-            transition: all 0.3s ease;
+            border: 1px solid rgba(27,77,62,0.06);
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
-        .card-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--gray-800);
+        .card-title {
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--gray-800);
         }
 
-        .card-header i {
-            color: var(--primary);
-            font-size: 20px;
-        }
+        .card-title i { color: var(--primary); font-size: 16px; }
 
         .badge {
             background: var(--primary-soft);
@@ -261,72 +751,77 @@
 
         .chart-container {
             position: relative;
-            height: 250px;
-            width: 100%;
+            height: 220px;
         }
 
-        .table-container {
-            grid-column: span 3;
+        /* Insights */
+        .insight-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            background: var(--gray-100);
+            border-radius: var(--radius-lg);
+            margin-bottom: 12px;
+            transition: background 0.2s;
+        }
+
+        .insight-item:last-child { margin-bottom: 0; }
+
+        .insight-item:hover { background: var(--primary-soft); }
+
+        .insight-icon {
+            width: 40px; height: 40px;
+            background: var(--white);
+            border-radius: var(--radius-md);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--primary);
+            font-size: 16px;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .insight-label {
+            font-weight: 600;
+            font-size: 13.5px;
+            color: var(--gray-800);
+            margin-bottom: 3px;
+        }
+
+        .insight-value {
+            font-size: 12.5px;
+            color: var(--gray-600);
+        }
+
+        /* Table */
+        .table-section {
             background: var(--white);
             border-radius: var(--radius-xl);
             padding: 24px;
             box-shadow: var(--shadow-md);
-            border: 1px solid var(--gray-200);
-            overflow: hidden;
+            border: 1px solid rgba(27,77,62,0.06);
         }
 
         .table-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
+        }
+
+        .table-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--gray-800);
+            font-family: 'Sora', sans-serif;
         }
 
         .table-actions {
             display: flex;
-            gap: 12px;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--gray-300);
-            padding: 8px 16px;
-            border-radius: var(--radius-md);
-            color: var(--gray-700);
-            font-weight: 500;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-outline:hover {
-            background: var(--gray-100);
-            border-color: var(--gray-400);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: var(--radius-lg);
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: var(--shadow-md);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-            filter: brightness(1.1);
+            gap: 10px;
         }
 
         .table-wrapper {
@@ -338,28 +833,30 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13.5px;
         }
 
         th {
             background: var(--gray-100);
-            color: var(--gray-700);
+            color: var(--gray-600);
             font-weight: 600;
-            padding: 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 14px 16px;
             text-align: left;
             white-space: nowrap;
-            border-bottom: 2px solid var(--gray-300);
+            border-bottom: 2px solid var(--gray-200);
         }
 
         td {
-            padding: 16px;
-            border-bottom: 1px solid var(--gray-200);
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--gray-100);
             color: var(--gray-800);
         }
 
-        tr:hover {
-            background: var(--gray-50);
-        }
+        tr:hover td { background: var(--gray-100); }
+        tr:last-child td { border-bottom: none; }
 
         .status-badge {
             display: inline-flex;
@@ -368,34 +865,25 @@
             border-radius: 100px;
             font-size: 12px;
             font-weight: 600;
-            gap: 6px;
+            gap: 5px;
+            white-space: nowrap;
         }
 
-        .status-em-dia {
-            background: #E8F5E9;
-            color: #2E7D32;
-        }
-
-        .status-atrasado {
-            background: #FFEBEE;
-            color: #C62828;
-        }
-
-        .status-nao-iniciado {
-            background: #FFF3E0;
-            color: #E65100;
-        }
+        .status-em-dia { background: #E8F5E9; color: #2E7D32; }
+        .status-atrasado { background: #FFEBEE; color: #C62828; }
+        .status-nao-iniciado { background: #FFF8E1; color: #E65100; }
+        .status-concluido { background: #E3F2FD; color: #1565C0; }
 
         .progress-bar {
             display: flex;
             align-items: center;
             gap: 8px;
-            min-width: 120px;
+            min-width: 110px;
         }
 
         .progress-track {
             flex: 1;
-            height: 8px;
+            height: 6px;
             background: var(--gray-200);
             border-radius: 100px;
             overflow: hidden;
@@ -405,128 +893,156 @@
             height: 100%;
             border-radius: 100px;
             background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            transition: width 0.3s ease;
         }
 
         .over-budget {
             color: var(--danger);
-            font-weight: 600;
-            background: #FFEBEE;
-            padding: 4px 8px;
-            border-radius: var(--radius-sm);
+            font-weight: 700;
         }
 
-        .refresh-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-500);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            color: var(--gray-300);
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .empty-state h3 {
+            font-size: 17px;
             color: var(--gray-600);
+            margin-bottom: 8px;
         }
 
-        .refresh-spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--gray-300);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+        .empty-state p { font-size: 14px; }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .config-panel {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--gray-200);
+        /* Notificações */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            border-radius: var(--radius-lg);
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
             display: flex;
             align-items: center;
-            gap: 24px;
-            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: var(--shadow-xl);
+            z-index: 99999;
+            animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .config-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(60px); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .fa-spin { animation: spin 0.8s linear infinite; }
+
+        /* Responsivo */
+        @media (max-width: 1100px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr 1fr; }
         }
 
-        .config-item label {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--gray-700);
-        }
-
-        .config-item select {
-            padding: 8px 12px;
-            border: 1px solid var(--gray-300);
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            color: var(--gray-800);
-            background: var(--white);
-            cursor: pointer;
-        }
-
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: var(--gray-400);
-            transition: .3s;
-            border-radius: 24px;
-        }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
-        }
-
-        input:checked + .toggle-slider {
-            background-color: var(--primary);
-        }
-
-        input:checked + .toggle-slider:before {
-            transform: translateX(26px);
-        }
-
-        .last-update {
-            margin-left: auto;
-            font-size: 13px;
-            color: var(--gray-600);
+        @media (max-width: 700px) {
+            .dashboard-wrapper { padding: 16px; }
+            .kpi-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; gap: 12px; }
+            .modal-body { padding: 24px; }
+            .modal-header { padding: 28px 24px 22px; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
+<!-- ===================== ONBOARDING MODAL ===================== -->
+<div id="onboarding-overlay">
+    <div class="onboarding-modal">
+        <div class="modal-header">
+            <div class="modal-logo">
+                <div class="modal-logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="modal-logo-text">
+                    Project Pulse BI
+                    <span>Dashboard para Gestores</span>
+                </div>
+            </div>
+            <h2>Configure seu painel em segundos</h2>
+            <p>Conecte sua planilha Google Sheets e monitore todos os projetos em tempo real, com atualização automática.</p>
+        </div>
+
+        <div class="modal-body">
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-content">
+                        <strong>Abra sua planilha no Google Sheets</strong>
+                        <p>Acesse o menu <code>Arquivo → Compartilhar → Publicar na web</code></p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-content">
+                        <strong>Publique como CSV</strong>
+                        <p>Selecione a aba desejada e o formato <code>Valores separados por vírgula (.csv)</code>, depois clique em <code>Publicar</code>.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-content">
+                        <strong>Cole o link abaixo</strong>
+                        <p>Copie o link gerado e cole no campo abaixo. O dashboard carregará seus dados automaticamente.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tip-box">
+                <i class="fas fa-lightbulb"></i>
+                <p><strong>Estrutura esperada da planilha:</strong> ID | Atividade | Responsável | Início Prev. | Término Prev. | Início Real | Término Real | Custo Prev. | Custo Real | Progresso (0–100)</p>
+            </div>
+
+            <div class="url-input-group">
+                <label>Link CSV do Google Sheets</label>
+                <div class="url-input-wrapper" id="urlWrapper">
+                    <div class="url-input-icon">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <input type="text" id="urlInput"
+                        placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
+                        oninput="validateUrl(this.value)"
+                        onpaste="setTimeout(() => validateUrl(document.getElementById('urlInput').value), 50)"
+                    />
+                </div>
+                <div class="url-validation-msg" id="urlValidationMsg"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-modal-secondary" onclick="useSampleData()">
+                    <i class="fas fa-flask"></i> Usar dados de exemplo
+                </button>
+                <button class="btn-modal-primary" id="btnConnect" onclick="connectAndLoad()" disabled>
+                    <i class="fas fa-plug"></i> Conectar e Carregar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== DASHBOARD ===================== -->
+<div class="dashboard-wrapper">
+
     <!-- Header -->
     <div class="header">
         <div class="logo-area">
@@ -535,33 +1051,35 @@
             </div>
             <div class="logo-text">
                 <h1>Project Pulse BI</h1>
-                <p>Auto-Refresh • Real-time Analytics</p>
+                <p>Auto-Refresh · Analytics em tempo real</p>
             </div>
         </div>
-        <div class="auto-refresh-badge">
-            <i class="fas fa-sync-alt"></i>
-            <span id="refreshStatus">Auto-Refresh Ativo</span>
+        <div class="header-right">
+            <div class="url-pill" onclick="openChangeUrl()" title="Clique para trocar a planilha">
+                <i class="fas fa-table"></i>
+                <span id="urlDisplay">Nenhuma planilha conectada</span>
+                <i class="fas fa-pen" style="font-size: 11px; opacity: 0.6;"></i>
+            </div>
+            <div class="refresh-badge">
+                <div class="pulse-dot" id="statusDot"></div>
+                <span id="refreshStatus">Conectando...</span>
+            </div>
         </div>
     </div>
 
-    <!-- Painel de Configuração -->
-    <div class="config-panel">
+    <!-- Config Bar -->
+    <div class="config-bar">
         <div class="config-item">
-            <i class="fas fa-link" style="color: var(--primary);"></i>
-            <span style="font-size: 14px; color: var(--gray-700);">URL da Planilha:</span>
-            <div class="url-display">
-                <span id="savedUrl">Nenhuma URL configurada</span>
-            </div>
-        </div>
-        
-        <div class="config-item">
-            <label>Auto-Refresh:</label>
+            <i class="fas fa-sync-alt" style="color: var(--primary);"></i>
+            <label>Auto-Refresh</label>
             <label class="toggle-switch">
                 <input type="checkbox" id="autoRefreshToggle" checked onchange="toggleAutoRefresh()">
                 <span class="toggle-slider"></span>
             </label>
         </div>
-        
+
+        <div class="config-divider"></div>
+
         <div class="config-item">
             <label>Intervalo:</label>
             <select id="refreshInterval" onchange="changeInterval()">
@@ -573,80 +1091,70 @@
                 <option value="3600">1 hora</option>
             </select>
         </div>
-        
-        <div class="config-item">
-            <button class="btn-outline" onclick="saveConfig()">
-                <i class="fas fa-save"></i>
-                Salvar Configuração
-            </button>
-        </div>
-        
-        <div class="last-update" id="lastUpdate">
-            Última atualização: --
+
+        <div class="config-divider"></div>
+
+        <button class="btn-sm btn-ghost" onclick="refreshNow()">
+            <i class="fas fa-sync-alt" id="refreshIcon"></i>
+            Atualizar Agora
+        </button>
+
+        <button class="btn-sm btn-ghost" onclick="exportToCSV()">
+            <i class="fas fa-download"></i>
+            Exportar CSV
+        </button>
+
+        <div class="last-update-info" id="lastUpdateInfo">
+            <i class="fas fa-clock"></i>
+            <span id="lastUpdateText">Aguardando dados...</span>
         </div>
     </div>
 
-    <!-- KPI Cards -->
+    <!-- KPIs -->
     <div class="kpi-grid">
         <div class="kpi-card">
             <div class="kpi-header">
-                <span class="kpi-title">Valor Total Previsto</span>
-                <div class="kpi-icon">
-                    <i class="fas fa-coins"></i>
-                </div>
+                <span class="kpi-label">Valor Total Previsto</span>
+                <div class="kpi-icon"><i class="fas fa-coins"></i></div>
             </div>
-            <div class="kpi-value" id="totalPrevisto">R$ 0</div>
-            <div class="kpi-trend">
-                <span class="trend-up"><i class="fas fa-arrow-up"></i> Orçamento total</span>
-            </div>
+            <div class="kpi-value" id="totalPrevisto">—</div>
+            <div class="kpi-sub"><i class="fas fa-info-circle"></i> Orçamento total do portfólio</div>
         </div>
 
         <div class="kpi-card">
             <div class="kpi-header">
-                <span class="kpi-title">Custo Real Acumulado</span>
-                <div class="kpi-icon">
-                    <i class="fas fa-chart-pie"></i>
-                </div>
+                <span class="kpi-label">Custo Real Acumulado</span>
+                <div class="kpi-icon"><i class="fas fa-chart-pie"></i></div>
             </div>
-            <div class="kpi-value" id="totalReal">R$ 0</div>
-            <div class="kpi-trend">
-                <span id="variacaoOrcamento" class="trend-up"><i class="fas fa-percent"></i> Dentro do orçamento</span>
-            </div>
+            <div class="kpi-value" id="totalReal">—</div>
+            <div class="kpi-sub" id="variacaoOrcamento"><i class="fas fa-percent"></i> —</div>
         </div>
 
         <div class="kpi-card">
             <div class="kpi-header">
-                <span class="kpi-title">Progresso Médio</span>
-                <div class="kpi-icon">
-                    <i class="fas fa-tasks"></i>
-                </div>
+                <span class="kpi-label">Progresso Médio</span>
+                <div class="kpi-icon"><i class="fas fa-tasks"></i></div>
             </div>
-            <div class="kpi-value" id="avgProgress">0%</div>
-            <div class="kpi-trend">
-                <span id="projetosAtivos"><i class="fas fa-play-circle"></i> Em andamento: 0</span>
-            </div>
+            <div class="kpi-value" id="avgProgress">—</div>
+            <div class="kpi-sub" id="projetosAtivos"><i class="fas fa-play-circle"></i> Em andamento: —</div>
         </div>
 
         <div class="kpi-card">
             <div class="kpi-header">
-                <span class="kpi-title">Total de Atividades</span>
-                <div class="kpi-icon">
-                    <i class="fas fa-clipboard-list"></i>
-                </div>
+                <span class="kpi-label">Total de Atividades</span>
+                <div class="kpi-icon"><i class="fas fa-clipboard-list"></i></div>
             </div>
-            <div class="kpi-value" id="totalAtividades">0</div>
-            <div class="kpi-trend">
-                <span id="atividadesConcluidas"><i class="fas fa-check-circle"></i> Concluídas: 0</span>
-            </div>
+            <div class="kpi-value" id="totalAtividades">—</div>
+            <div class="kpi-sub" id="atividadesConcluidas"><i class="fas fa-check-circle"></i> Concluídas: —</div>
         </div>
     </div>
 
-    <!-- Dashboard Grid -->
-    <div class="dashboard-grid">
+    <!-- Charts -->
+    <div class="charts-grid">
         <div class="card">
             <div class="card-header">
-                <h3><i class="fas fa-chart-pie"></i> Saúde Financeira</h3>
-                <span class="badge" id="percentualGasto">0% do orçamento</span>
+                <span class="card-title"><i class="fas fa-chart-pie"></i> Saúde Financeira</span>
+                <span class="badge" id="percentualGasto">—</span>
             </div>
             <div class="chart-container">
                 <canvas id="financeChart"></canvas>
@@ -655,8 +1163,8 @@
 
         <div class="card">
             <div class="card-header">
-                <h3><i class="fas fa-clock"></i> Status dos Prazos</h3>
-                <span class="badge" id="totalStatus">0 atividades</span>
+                <span class="card-title"><i class="fas fa-clock"></i> Status dos Prazos</span>
+                <span class="badge" id="totalStatus">—</span>
             </div>
             <div class="chart-container">
                 <canvas id="statusChart"></canvas>
@@ -665,55 +1173,43 @@
 
         <div class="card">
             <div class="card-header">
-                <h3><i class="fas fa-lightbulb"></i> Insights Rápidos</h3>
-                <span class="badge">Análise em tempo real</span>
+                <span class="card-title"><i class="fas fa-lightbulb"></i> Insights Rápidos</span>
+                <span class="badge">Ao vivo</span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--gray-100); border-radius: var(--radius-lg);">
-                    <div style="width: 45px; height: 45px; background: var(--primary-soft); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">Riscos Imediatos</div>
-                        <div style="font-size: 13px; color: var(--gray-600);" id="riscosText">Nenhum risco identificado</div>
-                    </div>
-                </div>
-                
-                <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--gray-100); border-radius: var(--radius-lg);">
-                    <div style="width: 45px; height: 45px; background: var(--primary-soft); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">Destaque da Semana</div>
-                        <div style="font-size: 13px; color: var(--gray-600);" id="destaqueText">Carregando...</div>
-                    </div>
-                </div>
 
-                <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--gray-100); border-radius: var(--radius-lg);">
-                    <div style="width: 45px; height: 45px; background: var(--primary-soft); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">Performance</div>
-                        <div style="font-size: 13px; color: var(--gray-600);" id="performanceText">Análise em andamento</div>
-                    </div>
+            <div class="insight-item">
+                <div class="insight-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div>
+                    <div class="insight-label">Riscos Imediatos</div>
+                    <div class="insight-value" id="riscosText">—</div>
+                </div>
+            </div>
+
+            <div class="insight-item">
+                <div class="insight-icon"><i class="fas fa-trophy"></i></div>
+                <div>
+                    <div class="insight-label">Destaque</div>
+                    <div class="insight-value" id="destaqueText">—</div>
+                </div>
+            </div>
+
+            <div class="insight-item">
+                <div class="insight-icon"><i class="fas fa-chart-line"></i></div>
+                <div>
+                    <div class="insight-label">Performance Orçamentária</div>
+                    <div class="insight-value" id="performanceText">—</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tabela -->
-    <div class="table-container">
+    <!-- Table -->
+    <div class="table-section">
         <div class="table-header">
-            <h3><i class="fas fa-list-ul"></i> Detalhamento das Atividades</h3>
+            <span class="table-title"><i class="fas fa-list-ul" style="color: var(--primary);"></i> Detalhamento das Atividades</span>
             <div class="table-actions">
-                <button class="btn-outline" onclick="exportToCSV()">
-                    <i class="fas fa-download"></i>
-                    Exportar CSV
-                </button>
-                <button class="btn-outline" onclick="refreshNow()">
-                    <i class="fas fa-sync-alt"></i>
-                    Atualizar Agora
+                <button class="btn-sm btn-ghost" onclick="exportToCSV()">
+                    <i class="fas fa-download"></i> Exportar
                 </button>
             </div>
         </div>
@@ -736,9 +1232,12 @@
                 </thead>
                 <tbody id="tableBody">
                     <tr>
-                        <td colspan="11" style="text-align: center; padding: 60px;">
-                            <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--gray-400); margin-bottom: 16px; display: block;"></i>
-                            <span style="color: var(--gray-600);">Configure a URL da planilha para começar</span>
+                        <td colspan="11">
+                            <div class="empty-state">
+                                <i class="fas fa-table"></i>
+                                <h3>Nenhum dado carregado</h3>
+                                <p>Configure a planilha no painel acima para visualizar as atividades</p>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -748,7 +1247,7 @@
 </div>
 
 <script>
-// Variáveis globais
+// ===================== ESTADO GLOBAL =====================
 let financeChart = null;
 let statusChart = null;
 let refreshTimer = null;
@@ -757,408 +1256,313 @@ let savedUrl = '';
 let autoRefreshEnabled = true;
 let refreshIntervalSeconds = 60;
 
-// Configuração inicial
-document.addEventListener('DOMContentLoaded', function() {
-    loadConfig();
-    startAutoRefresh();
-});
-
-function loadConfig() {
-    // Carregar configurações salvas
-    const config = JSON.parse(localStorage.getItem('dashboardConfig')) || {};
-    
+// ===================== INICIALIZAÇÃO =====================
+document.addEventListener('DOMContentLoaded', () => {
+    const config = getConfig();
     if (config.url) {
         savedUrl = config.url;
-        document.getElementById('savedUrl').textContent = config.url.substring(0, 50) + '...';
-        fetchData(); // Carregar dados automaticamente
-    }
-    
-    if (config.autoRefresh !== undefined) {
-        autoRefreshEnabled = config.autoRefresh;
+        autoRefreshEnabled = config.autoRefresh !== false;
+        refreshIntervalSeconds = config.interval || 60;
+
         document.getElementById('autoRefreshToggle').checked = autoRefreshEnabled;
-        document.getElementById('refreshStatus').textContent = autoRefreshEnabled ? 'Auto-Refresh Ativo' : 'Auto-Refresh Inativo';
-    }
-    
-    if (config.interval) {
-        refreshIntervalSeconds = config.interval;
         document.getElementById('refreshInterval').value = refreshIntervalSeconds;
+
+        closeOnboarding();
+        fetchData(true);
+        startAutoRefresh();
     }
+});
+
+// ===================== CONFIG =====================
+function getConfig() {
+    try { return JSON.parse(localStorage.getItem('ppbi_config')) || {}; } catch { return {}; }
 }
 
 function saveConfig() {
-    const config = {
+    localStorage.setItem('ppbi_config', JSON.stringify({
         url: savedUrl,
         autoRefresh: autoRefreshEnabled,
         interval: refreshIntervalSeconds
-    };
-    
-    localStorage.setItem('dashboardConfig', JSON.stringify(config));
-    showNotification('Configurações salvas com sucesso!', 'success');
-    
-    // Reiniciar auto-refresh com nova configuração
-    if (autoRefreshEnabled) {
-        startAutoRefresh();
+    }));
+}
+
+// ===================== ONBOARDING =====================
+function validateUrl(val) {
+    const wrapper = document.getElementById('urlWrapper');
+    const msg = document.getElementById('urlValidationMsg');
+    const btn = document.getElementById('btnConnect');
+
+    if (!val) {
+        wrapper.className = 'url-input-wrapper';
+        msg.innerHTML = '';
+        btn.disabled = true;
+        return;
+    }
+
+    const isGSheets = val.includes('docs.google.com/spreadsheets');
+    const isCsv = val.includes('output=csv');
+    const isPub = val.includes('/pub?') || val.includes('pub?');
+
+    if (isGSheets && isCsv && isPub) {
+        wrapper.className = 'url-input-wrapper valid';
+        msg.className = 'url-validation-msg success';
+        msg.innerHTML = '<i class="fas fa-check-circle"></i> URL válida! Pronto para conectar.';
+        btn.disabled = false;
+    } else if (isGSheets && !isCsv) {
+        wrapper.className = 'url-input-wrapper invalid';
+        msg.className = 'url-validation-msg error';
+        msg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Use o link de "Publicar na web" com formato CSV.';
+        btn.disabled = true;
+    } else if (val.length > 10) {
+        wrapper.className = 'url-input-wrapper invalid';
+        msg.className = 'url-validation-msg error';
+        msg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Link inválido. Use o link do Google Sheets publicado como CSV.';
+        btn.disabled = true;
     }
 }
 
+function connectAndLoad() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+
+    savedUrl = url;
+    saveConfig();
+    closeOnboarding();
+    fetchData(false);
+    startAutoRefresh();
+}
+
+function useSampleData() {
+    closeOnboarding();
+    loadSampleData();
+    showToast('Dados de exemplo carregados!', 'info');
+}
+
+function closeOnboarding() {
+    document.getElementById('onboarding-overlay').classList.add('hidden');
+}
+
+function openChangeUrl() {
+    document.getElementById('urlInput').value = savedUrl;
+    validateUrl(savedUrl);
+    document.getElementById('onboarding-overlay').classList.remove('hidden');
+}
+
+// ===================== AUTO REFRESH =====================
 function toggleAutoRefresh() {
     autoRefreshEnabled = document.getElementById('autoRefreshToggle').checked;
-    document.getElementById('refreshStatus').textContent = autoRefreshEnabled ? 'Auto-Refresh Ativo' : 'Auto-Refresh Inativo';
-    
     if (autoRefreshEnabled) {
         startAutoRefresh();
+        updateStatusDot(true);
     } else {
         stopAutoRefresh();
+        updateStatusDot(false);
     }
-    
     saveConfig();
 }
 
 function changeInterval() {
     refreshIntervalSeconds = parseInt(document.getElementById('refreshInterval').value);
-    if (autoRefreshEnabled) {
-        startAutoRefresh(); // Reiniciar com novo intervalo
-    }
+    if (autoRefreshEnabled) startAutoRefresh();
     saveConfig();
 }
 
 function startAutoRefresh() {
     stopAutoRefresh();
     if (autoRefreshEnabled && savedUrl) {
-        refreshTimer = setInterval(() => {
-            fetchData(true); // true = refresh silencioso
-        }, refreshIntervalSeconds * 1000);
+        refreshTimer = setInterval(() => fetchData(true), refreshIntervalSeconds * 1000);
     }
 }
 
 function stopAutoRefresh() {
-    if (refreshTimer) {
-        clearInterval(refreshTimer);
-        refreshTimer = null;
-    }
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
 }
 
-async function fetchData(silent = false) {
-    if (!savedUrl) {
-        if (!silent) {
-            promptForUrl();
-        }
-        return;
-    }
+function updateStatusDot(active) {
+    const dot = document.getElementById('statusDot');
+    const status = document.getElementById('refreshStatus');
+    dot.style.background = active ? 'var(--success)' : 'var(--gray-400)';
+    status.textContent = active ? 'Ao vivo' : 'Pausado';
+}
 
+// ===================== FETCH =====================
+async function fetchData(silent = false) {
+    if (!savedUrl) return;
     if (isRefreshing) return;
     isRefreshing = true;
 
-    try {
-        if (!silent) {
-            document.querySelector('.btn-outline:last-child i').classList.add('fa-spin');
-        }
+    const icon = document.getElementById('refreshIcon');
+    icon.classList.add('fa-spin');
 
-        // Adicionar timestamp para evitar cache
-        const url = savedUrl + (savedUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
-        
+    try {
+        const url = savedUrl + (savedUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
         const response = await fetch(url);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         const csvData = await response.text();
-        
         processData(csvData);
-        
-        // Atualizar timestamp
-        document.getElementById('lastUpdate').textContent = 'Última atualização: ' + new Date().toLocaleTimeString();
-        
-        if (!silent) {
-            showNotification('Dados atualizados com sucesso!', 'success');
-        }
+
+        document.getElementById('lastUpdateText').textContent =
+            'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+
+        updateStatusDot(autoRefreshEnabled);
+
+        if (!silent) showToast('Dados atualizados com sucesso!', 'success');
 
     } catch (e) {
-        console.error(e);
-        if (!silent) {
-            showNotification('Erro ao carregar dados. Verifique a URL.', 'error');
-        }
+        updateStatusDot(false);
+        document.getElementById('refreshStatus').textContent = 'Erro';
+        document.getElementById('statusDot').style.background = 'var(--danger)';
+        if (!silent) showToast('Erro ao buscar dados. Verifique a URL.', 'error');
     } finally {
         isRefreshing = false;
-        if (!silent) {
-            document.querySelector('.btn-outline:last-child i').classList.remove('fa-spin');
-        }
+        icon.classList.remove('fa-spin');
     }
 }
 
-function promptForUrl() {
-    const url = prompt('Cole o link do CSV publicado do Google Sheets:');
-    if (url && url.includes('output=csv')) {
-        savedUrl = url;
-        document.getElementById('savedUrl').textContent = url.substring(0, 50) + '...';
-        fetchData();
-        saveConfig();
-        startAutoRefresh();
-    } else {
-        alert('URL inválida! Certifique-se de usar o link de "Publicar na web" no formato CSV.');
-    }
-}
+function refreshNow() { fetchData(false); }
 
+// ===================== PROCESS DATA =====================
 function processData(csvData) {
     const rows = parseCSV(csvData);
-    const dataRows = rows.slice(1);
-    
-    let totalPrevisto = 0;
-    let totalReal = 0;
-    let progressoSoma = 0;
-    let projetosAtivos = 0;
-    let atividadesConcluidas = 0;
-    let tableHtml = "";
-    
-    let emDia = 0;
-    let atrasados = 0;
-    let naoIniciados = 0;
-    
-    let projetosAcimaOrcamento = 0;
-    let maiorProgresso = { nome: '', progresso: 0 };
+    const dataRows = rows.slice(1).filter(r => r.length >= 10 && r[1]);
+
+    let totalPrev = 0, totalReal = 0, progressSum = 0;
+    let emAndamento = 0, concluidas = 0;
+    let emDia = 0, atrasados = 0, naoIniciados = 0;
+    let sobreOrcamento = 0;
+    let destaque = { nome: '', prog: 0 };
+    let tableHtml = '';
 
     dataRows.forEach(cols => {
-        if(cols.length < 10) return;
-        
-        const id = cols[0] || '-';
-        const atividade = cols[1] || '-';
-        const responsavel = cols[2] || '-';
-        const inicioPrevisto = cols[3] || '-';
-        const terminoPrevisto = cols[4] || '-';
-        const inicioReal = cols[5] || '-';
-        const terminoReal = cols[6] || '-';
-        const custoPrevisto = parseFloat(cols[7]) || 0;
-        const custoReal = parseFloat(cols[8]) || 0;
-        const progresso = parseInt(cols[9]) || 0;
-        
-        totalPrevisto += custoPrevisto;
+        const id = cols[0] || '—';
+        const atividade = cols[1] || '—';
+        const resp = cols[2] || '—';
+        const inPrev = cols[3] || '—';
+        const fimPrev = cols[4] || '—';
+        const inReal = cols[5] || '—';
+        const fimReal = cols[6] || '—';
+        const custoPrev = parseFloat((cols[7] || '0').replace(',', '.')) || 0;
+        const custoReal = parseFloat((cols[8] || '0').replace(',', '.')) || 0;
+        const prog = Math.min(100, Math.max(0, parseInt(cols[9]) || 0));
+
+        totalPrev += custoPrev;
         totalReal += custoReal;
-        
-        if(custoReal > custoPrevisto) projetosAcimaOrcamento++;
-        
-        if(progresso > 0 && progresso < 100) {
-            progressoSoma += progresso;
-            projetosAtivos++;
-        }
-        
-        if(progresso === 100) atividadesConcluidas++;
-        
-        if(progresso > maiorProgresso.progresso) {
-            maiorProgresso = { nome: atividade, progresso };
-        }
-        
-        const isOver = custoReal > custoPrevisto ? 'over-budget' : '';
-        
-        // Determinar status
-        let statusClass = '';
-        let statusText = '';
-        
-        if(progresso === 0) {
+        if (custoReal > custoPrev) sobreOrcamento++;
+
+        if (prog > 0 && prog < 100) { progressSum += prog; emAndamento++; }
+        if (prog === 100) concluidas++;
+        if (prog > destaque.prog) { destaque = { nome: atividade, prog }; }
+
+        let statusClass = '', statusText = '', statusIcon = '';
+
+        if (prog === 0) {
             naoIniciados++;
             statusClass = 'status-nao-iniciado';
             statusText = 'Não iniciado';
-        } else if(progresso === 100) {
+            statusIcon = 'fa-hourglass-start';
+        } else if (prog === 100) {
             emDia++;
-            statusClass = 'status-em-dia';
+            statusClass = 'status-concluido';
             statusText = 'Concluído';
+            statusIcon = 'fa-check-circle';
         } else {
             const hoje = new Date();
-            if(terminoPrevisto && terminoPrevisto !== '-') {
-                const dataTermino = parseDate(terminoPrevisto);
-                if(dataTermino && hoje > dataTermino) {
-                    atrasados++;
-                    statusClass = 'status-atrasado';
-                    statusText = 'Atrasado';
-                } else {
-                    emDia++;
-                    statusClass = 'status-em-dia';
-                    statusText = 'Em dia';
-                }
+            const dataFim = parseDate(fimPrev);
+            if (dataFim && hoje > dataFim) {
+                atrasados++;
+                statusClass = 'status-atrasado';
+                statusText = 'Atrasado';
+                statusIcon = 'fa-exclamation-circle';
             } else {
                 emDia++;
                 statusClass = 'status-em-dia';
                 statusText = 'Em dia';
+                statusIcon = 'fa-clock';
             }
         }
 
+        const isOver = custoReal > custoPrev ? 'over-budget' : '';
+
         tableHtml += `
-            <tr>
-                <td><span style="font-weight: 600; color: var(--gray-700);">${id}</span></td>
-                <td><strong>${atividade}</strong></td>
-                <td>${responsavel}</td>
-                <td>${formatDate(inicioPrevisto)}</td>
-                <td>${formatDate(terminoPrevisto)}</td>
-                <td>${formatDate(inicioReal)}</td>
-                <td>${formatDate(terminoReal)}</td>
-                <td>${formatMoney(custoPrevisto)}</td>
-                <td class="${isOver}">${formatMoney(custoReal)}</td>
-                <td>
-                    <div class="progress-bar">
-                        <div class="progress-track">
-                            <div class="progress-fill" style="width: ${progresso}%"></div>
-                        </div>
-                        <span style="font-size: 12px; font-weight: 600;">${progresso}%</span>
+        <tr>
+            <td><strong style="color:var(--gray-600)">${id}</strong></td>
+            <td><strong>${atividade}</strong></td>
+            <td>${resp}</td>
+            <td>${inPrev}</td>
+            <td>${fimPrev}</td>
+            <td>${inReal}</td>
+            <td>${fimReal}</td>
+            <td>${formatMoney(custoPrev)}</td>
+            <td class="${isOver}">${formatMoney(custoReal)}</td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width:${prog}%"></div>
                     </div>
-                </td>
-                <td>
-                    <span class="status-badge ${statusClass}">
-                        <i class="fas ${getStatusIcon(statusText)}"></i>
-                        ${statusText}
-                    </span>
-                </td>
-            </tr>`;
+                    <span style="font-size:12px;font-weight:600;min-width:32px">${prog}%</span>
+                </div>
+            </td>
+            <td>
+                <span class="status-badge ${statusClass}">
+                    <i class="fas ${statusIcon}"></i> ${statusText}
+                </span>
+            </td>
+        </tr>`;
     });
 
-    // Atualizar tabela
-    document.getElementById('tableBody').innerHTML = tableHtml;
-    
-    // Atualizar KPIs
-    document.getElementById('totalPrevisto').innerText = formatMoney(totalPrevisto);
-    document.getElementById('totalReal').innerText = formatMoney(totalReal);
-    
-    const mediaProgresso = projetosAtivos > 0 ? Math.round(progressoSoma / projetosAtivos) : 0;
-    document.getElementById('avgProgress').innerText = mediaProgresso + '%';
-    
-    document.getElementById('totalAtividades').innerText = dataRows.length;
-    document.getElementById('atividadesConcluidas').innerHTML = `<i class="fas fa-check-circle"></i> Concluídas: ${atividadesConcluidas}`;
-    document.getElementById('projetosAtivos').innerHTML = `<i class="fas fa-play-circle"></i> Em andamento: ${projetosAtivos}`;
-    
-    // Variação orçamentária
-    const variacao = totalPrevisto > 0 ? ((totalReal - totalPrevisto) / totalPrevisto * 100).toFixed(1) : 0;
-    const variacaoElement = document.getElementById('variacaoOrcamento');
-    variacaoElement.innerHTML = `<i class="fas ${variacao > 0 ? 'fa-arrow-up trend-down' : 'fa-arrow-down trend-up'}"></i> ${Math.abs(variacao)}% ${variacao > 0 ? 'acima' : 'abaixo'}`;
-    variacaoElement.className = variacao > 0 ? 'trend-down' : 'trend-up';
-    
-    document.getElementById('percentualGasto').innerText = totalPrevisto > 0 ? ((totalReal / totalPrevisto) * 100).toFixed(1) + '% do orçamento' : '0% do orçamento';
-    
-    document.getElementById('totalStatus').innerText = `${emDia + atrasados + naoIniciados} atividades`;
-    
-    // Insights
-    document.getElementById('riscosText').innerHTML = `${projetosAcimaOrcamento} acima do orçamento | ${atrasados} atrasados`;
-    document.getElementById('destaqueText').innerHTML = maiorProgresso.nome ? `${maiorProgresso.nome} - ${maiorProgresso.progresso}%` : 'Nenhum destaque';
-    
-    const performance = totalPrevisto > 0 ? ((totalPrevisto - totalReal) / totalPrevisto * 100).toFixed(1) : 0;
-    document.getElementById('performanceText').innerHTML = `${performance}% do orçamento disponível`;
+    document.getElementById('tableBody').innerHTML = tableHtml ||
+        `<tr><td colspan="11"><div class="empty-state"><i class="fas fa-inbox"></i><h3>Nenhuma atividade encontrada</h3><p>Verifique se a planilha tem dados a partir da linha 2</p></div></td></tr>`;
 
-    // Atualizar gráficos
-    updateFinanceChart(totalPrevisto, totalReal);
+    const avgProg = emAndamento > 0 ? Math.round(progressSum / emAndamento) : 0;
+    const variacao = totalPrev > 0 ? ((totalReal - totalPrev) / totalPrev * 100).toFixed(1) : 0;
+    const saldoPct = totalPrev > 0 ? ((totalReal / totalPrev) * 100).toFixed(1) : 0;
+
+    document.getElementById('totalPrevisto').textContent = formatMoney(totalPrev);
+    document.getElementById('totalReal').textContent = formatMoney(totalReal);
+    document.getElementById('avgProgress').textContent = avgProg + '%';
+    document.getElementById('totalAtividades').textContent = dataRows.length;
+    document.getElementById('atividadesConcluidas').innerHTML = `<i class="fas fa-check-circle" style="color:var(--success)"></i> Concluídas: ${concluidas}`;
+    document.getElementById('projetosAtivos').innerHTML = `<i class="fas fa-play-circle" style="color:var(--info)"></i> Em andamento: ${emAndamento}`;
+    document.getElementById('variacaoOrcamento').innerHTML = `<i class="fas fa-arrow-${variacao > 0 ? 'up trend-down' : 'down trend-up'}"></i> ${Math.abs(variacao)}% ${variacao > 0 ? 'acima do orçamento' : 'dentro do orçamento'}`;
+    document.getElementById('percentualGasto').textContent = saldoPct + '% utilizado';
+    document.getElementById('totalStatus').textContent = `${dataRows.length} atividades`;
+    document.getElementById('riscosText').textContent = `${sobreOrcamento} acima do orçamento • ${atrasados} atrasados`;
+    document.getElementById('destaqueText').textContent = destaque.nome ? `${destaque.nome} — ${destaque.prog}% concluído` : '—';
+    document.getElementById('performanceText').textContent = `${(100 - parseFloat(saldoPct)).toFixed(1)}% do orçamento disponível`;
+    document.getElementById('urlDisplay').textContent = savedUrl ? savedUrl.substring(0, 45) + '...' : 'Nenhuma planilha';
+
+    updateFinanceChart(totalPrev, totalReal);
     updateStatusChart(emDia, atrasados, naoIniciados);
 }
 
-function refreshNow() {
-    fetchData(false);
-}
-
-function parseCSV(csvText) {
-    const lines = [];
-    let currentLine = [];
-    let currentField = '';
-    let inQuotes = false;
-    
-    for(let i = 0; i < csvText.length; i++) {
-        const char = csvText[i];
-        const nextChar = csvText[i + 1];
-        
-        if(char === '"' && !inQuotes) {
-            inQuotes = true;
-        } else if(char === '"' && inQuotes && nextChar === '"') {
-            currentField += '"';
-            i++;
-        } else if(char === '"' && inQuotes) {
-            inQuotes = false;
-        } else if(char === ',' && !inQuotes) {
-            currentLine.push(currentField);
-            currentField = '';
-        } else if((char === '\n' || char === '\r') && !inQuotes) {
-            if(char === '\r' && nextChar === '\n') {
-                i++;
-            }
-            if(currentField || currentLine.length > 0) {
-                currentLine.push(currentField);
-                lines.push(currentLine);
-            }
-            currentLine = [];
-            currentField = '';
-        } else {
-            currentField += char;
-        }
-    }
-    
-    if(currentField || currentLine.length > 0) {
-        currentLine.push(currentField);
-        lines.push(currentLine);
-    }
-    
-    return lines;
-}
-
-function parseDate(dateStr) {
-    if(!dateStr || dateStr === '-' || dateStr === '') return null;
-    
-    const parts = dateStr.split('/');
-    if(parts.length === 3) {
-        return new Date(parts[2], parts[1] - 1, parts[0]);
-    }
-    
-    const parts2 = dateStr.split('-');
-    if(parts2.length === 3) {
-        return new Date(parts2[0], parts2[1] - 1, parts2[2]);
-    }
-    
-    return new Date(dateStr);
-}
-
-function formatDate(dateStr) {
-    if(!dateStr || dateStr === '-' || dateStr === '') return '-';
-    return dateStr;
-}
-
-function formatMoney(value) {
-    return 'R$ ' + value.toFixed(2).replace('.', ',');
-}
-
-function getStatusIcon(status) {
-    const icons = {
-        'Concluído': 'fa-check-circle',
-        'Em dia': 'fa-clock',
-        'Atrasado': 'fa-exclamation-circle',
-        'Não iniciado': 'fa-hourglass-start'
-    };
-    return icons[status] || 'fa-circle';
-}
-
-function updateFinanceChart(previsto, real) {
+// ===================== CHARTS =====================
+function updateFinanceChart(prev, real) {
     const ctx = document.getElementById('financeChart').getContext('2d');
-    if(financeChart) financeChart.destroy();
-    
-    const saldo = Math.max(0, previsto - real);
-    
+    if (financeChart) financeChart.destroy();
+
+    const saldo = Math.max(0, prev - real);
+
     financeChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Gasto Real', 'Saldo Disponível'],
+            labels: ['Custo Real', 'Saldo Disponível'],
             datasets: [{
                 data: [real, saldo],
-                backgroundColor: [
-                    'rgba(39, 174, 96, 0.9)',
-                    'rgba(230, 242, 238, 0.9)'
-                ],
-                borderColor: [
-                    'rgba(39, 174, 96, 1)',
-                    'rgba(200, 215, 210, 1)'
-                ],
+                backgroundColor: ['rgba(27,77,62,0.85)', 'rgba(232,243,240,0.9)'],
+                borderColor: ['rgba(27,77,62,1)', 'rgba(200,220,215,1)'],
                 borderWidth: 2,
-                hoverOffset: 4
+                hoverOffset: 6
             }]
         },
         options: {
-            cutout: '70%',
+            cutout: '72%',
             plugins: {
-                legend: { display: false },
+                legend: {
+                    position: 'bottom',
+                    labels: { font: { family: 'DM Sans', size: 12 }, padding: 16 }
+                },
                 tooltip: {
-                    callbacks: {
-                        label: (context) => {
-                            const label = context.label || '';
-                            const value = context.raw || 0;
-                            return `${label}: ${formatMoney(value)}`;
-                        }
-                    }
+                    callbacks: { label: ctx => `${ctx.label}: ${formatMoney(ctx.raw)}` }
                 }
             }
         }
@@ -1167,117 +1571,114 @@ function updateFinanceChart(previsto, real) {
 
 function updateStatusChart(emDia, atrasados, naoIniciados) {
     const ctx = document.getElementById('statusChart').getContext('2d');
-    if(statusChart) statusChart.destroy();
-    
+    if (statusChart) statusChart.destroy();
+
     statusChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: ['Em dia', 'Atrasados', 'Não iniciados'],
             datasets: [{
                 data: [emDia, atrasados, naoIniciados],
-                backgroundColor: [
-                    'rgba(46, 125, 50, 0.9)',
-                    'rgba(198, 40, 40, 0.9)',
-                    'rgba(230, 81, 0, 0.9)'
-                ],
-                borderColor: [
-                    'rgba(46, 125, 50, 1)',
-                    'rgba(198, 40, 40, 1)',
-                    'rgba(230, 81, 0, 1)'
-                ],
+                backgroundColor: ['rgba(46,125,50,0.85)', 'rgba(198,40,40,0.85)', 'rgba(230,81,0,0.85)'],
+                borderColor: ['rgba(46,125,50,1)', 'rgba(198,40,40,1)', 'rgba(230,81,0,1)'],
                 borderWidth: 2,
-                borderRadius: 6
+                borderRadius: 8,
+                borderSkipped: false
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'DM Sans' } } },
+                x: { ticks: { font: { family: 'DM Sans', size: 12 } } }
             }
         }
     });
 }
 
-function exportToCSV() {
-    const table = document.getElementById('projectTable');
-    const rows = table.querySelectorAll('tr');
-    const csv = [];
-    
-    for (const row of rows) {
-        const cells = row.querySelectorAll('td, th');
-        const rowData = [];
-        for (const cell of cells) {
-            rowData.push('"' + cell.innerText.replace(/"/g, '""') + '"');
-        }
-        csv.push(rowData.join(','));
-    }
-    
-    const csvContent = csv.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'project-pulse-export.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-    
-    showNotification('Arquivo exportado com sucesso!', 'success');
+// ===================== SAMPLE DATA =====================
+function loadSampleData() {
+    const csv = `ID,Atividade,Responsável,Início Prev.,Término Prev.,Início Real,Término Real,Custo Prev.,Custo Real,Progresso
+1,Levantamento de Requisitos,Ana Lima,01/03/2025,15/03/2025,01/03/2025,14/03/2025,5000,4800,100
+2,Prototipagem UI,Carlos Mota,16/03/2025,31/03/2025,16/03/2025,,8000,7200,80
+3,Desenvolvimento Backend,Fernanda Rocha,01/04/2025,30/04/2025,02/04/2025,,20000,18500,60
+4,Desenvolvimento Frontend,Rafael Costa,01/04/2025,30/04/2025,01/04/2025,,15000,16200,55
+5,Integração de APIs,Ana Lima,01/05/2025,20/05/2025,,,12000,0,0
+6,Testes e QA,Pedro Alves,21/05/2025,10/06/2025,,,8000,0,0
+7,Deploy em Produção,Carlos Mota,11/06/2025,20/06/2025,,,5000,0,0
+8,Treinamento,Fernanda Rocha,21/06/2025,30/06/2025,,,3000,0,0`;
+
+    processData(csv);
+    document.getElementById('lastUpdateText').textContent = 'Dados de exemplo • ' + new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('urlDisplay').textContent = 'Dados de exemplo';
+    updateStatusDot(false);
 }
 
-function showNotification(message, type) {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 16px 24px;
-        background: ${type === 'success' ? '#27AE60' : type === 'warning' ? '#F39C12' : type === 'error' ? '#E74C3C' : '#3498DB'};
-        color: white;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-lg);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    `;
-    
-    const icon = type === 'success' ? 'fa-check-circle' : 
-                 type === 'warning' ? 'fa-exclamation-triangle' : 
-                 type === 'error' ? 'fa-times-circle' : 'fa-info-circle';
-    
-    notification.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
-    document.body.appendChild(notification);
-    
+// ===================== UTILS =====================
+function parseCSV(text) {
+    const lines = [];
+    let line = [], field = '', inQ = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i], n = text[i + 1];
+        if (c === '"' && !inQ) { inQ = true; }
+        else if (c === '"' && inQ && n === '"') { field += '"'; i++; }
+        else if (c === '"' && inQ) { inQ = false; }
+        else if (c === ',' && !inQ) { line.push(field); field = ''; }
+        else if ((c === '\n' || c === '\r') && !inQ) {
+            if (c === '\r' && n === '\n') i++;
+            if (field || line.length) { line.push(field); lines.push(line); }
+            line = []; field = '';
+        } else { field += c; }
+    }
+    if (field || line.length) { line.push(field); lines.push(line); }
+    return lines;
+}
+
+function parseDate(str) {
+    if (!str || str === '—' || str === '-') return null;
+    const p = str.split('/');
+    if (p.length === 3) return new Date(p[2], p[1] - 1, p[0]);
+    const q = str.split('-');
+    if (q.length === 3) return new Date(q[0], q[1] - 1, q[2]);
+    return new Date(str);
+}
+
+function formatMoney(v) {
+    return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function exportToCSV() {
+    const rows = document.getElementById('projectTable').querySelectorAll('tr');
+    const csv = Array.from(rows).map(r =>
+        Array.from(r.querySelectorAll('td, th')).map(c => '"' + c.innerText.replace(/"/g, '""') + '"').join(',')
+    ).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'project-pulse-export-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    showToast('Arquivo exportado!', 'success');
+}
+
+function showToast(msg, type = 'success') {
+    const colors = { success: '#27AE60', error: '#E74C3C', info: '#3498DB', warning: '#F39C12' };
+    const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle', warning: 'fa-exclamation-triangle' };
+
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.style.background = colors[type] || colors.info;
+    t.innerHTML = `<i class="fas ${icons[type]}"></i> ${msg}`;
+    document.body.appendChild(t);
+
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
+        t.style.animation = 'slideOutRight 0.3s ease forwards';
+        setTimeout(() => t.remove(), 300);
     }, 3000);
 }
-
-// Adicionar estilos de animação
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 </script>
 </body>
 </html>
