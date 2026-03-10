@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Pulse BI | Dashboard para Gestores</title>
+    <title>Project Wagner BI | Dashboard para Gestores</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -224,7 +224,7 @@
         <div class="modal-header">
             <div class="modal-logo">
                 <div class="modal-logo-icon"><i class="fas fa-chart-line"></i></div>
-                <div class="modal-logo-text">Project Pulse BI <span>Dashboard para Gestores</span></div>
+                <div class="modal-logo-text">Project Wagner BI <span>Dashboard para Gestores</span></div>
             </div>
             <h2>Configure seu painel em segundos</h2>
             <p>Conecte uma planilha Google Sheets e monitore projetos com atualização automática.</p>
@@ -342,7 +342,7 @@
         <div class="logo-area">
             <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
             <div class="logo-text">
-                <h1 id="projectTitle">Project Pulse BI</h1>
+                <h1 id="projectTitle">Project Wagner BI</h1>
                 <p id="projectSubtitle">Auto-Refresh · Analytics em tempo real</p>
             </div>
         </div>
@@ -461,7 +461,7 @@
 // ===== ESTADO =====
 let financeChart=null, statusChart=null, refreshTimer=null, isRefreshing=false;
 let savedUrl='', autoRefreshEnabled=true, refreshIntervalSec=60;
-let projectInfo={nome:'Project Pulse BI',responsavel:'',instituicao:''};
+let projectInfo={nome:'Project Wagner BI',responsavel:'',instituicao:''};
 let lastData={totalPrev:0,totalReal:0,avgProg:0,emDia:0,atrasados:0,naoIniciados:0,total:0,concluidas:0,emAndamento:0,sobreOrcamento:0,destaque:'',usedPct:0,varPct:0,rows:[]};
 
 // ===== INIT =====
@@ -926,7 +926,7 @@ body{font-family:'DM Sans',sans-serif;background:#e0e5e3;color:#1A1F1E}
   <div class="capa-left">
     <!-- Badge produto -->
     <div>
-      <div class="capa-badge"><i class="fas fa-chart-line"></i>Project Pulse BI · Relatório de Status</div>
+      <div class="capa-badge"><i class="fas fa-chart-line"></i>Project Wagner BI · Relatório de Status</div>
     </div>
 
     <!-- Nome do projeto (centro) -->
@@ -965,7 +965,7 @@ body{font-family:'DM Sans',sans-serif;background:#e0e5e3;color:#1A1F1E}
       <div class="capa-inst-label">Instituição</div>
       <div class="capa-inst-name">${pi.instituicao||'—'}</div>
     </div>
-    <div class="capa-right-brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="capa-right-brand"><i class="fas fa-chart-mixed"></i>Project Wagner BI</div>
   </div>
 </div>
 
@@ -1011,7 +1011,7 @@ body{font-family:'DM Sans',sans-serif;background:#e0e5e3;color:#1A1F1E}
     <span style="margin-left:auto;color:#9CA3AF;font-size:10.5px"><i class="fas fa-circle-half-stroke"></i> ${usedN}% do orçamento utilizado</span>
   </div>
   <div class="slide-foot">
-    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Wagner BI</div>
     <div class="pnum">2 / 6</div>
   </div>
 </div>
@@ -1051,7 +1051,7 @@ body{font-family:'DM Sans',sans-serif;background:#e0e5e3;color:#1A1F1E}
     </div>
   </div>
   <div class="slide-foot">
-    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Wagner BI</div>
     <div class="pnum">3 / 6</div>
   </div>
 </div>
@@ -1079,7 +1079,7 @@ body{font-family:'DM Sans',sans-serif;background:#e0e5e3;color:#1A1F1E}
     </table>
   </div>
   <div class="slide-foot">
-    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Wagner BI</div>
     <div class="pnum">4 / 6</div>
   </div>
 </div>
@@ -1123,7 +1123,7 @@ body{font-family:'DM Sans',sans-serif;background:#e0e5e3;color:#1A1F1E}
     </div>
   </div>
   <div class="slide-foot">
-    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Wagner BI</div>
     <div class="pnum">5 / 6</div>
   </div>
 </div>
@@ -1133,12 +1133,12 @@ body{font-family:'DM Sans',sans-serif;background:#e0e5e3;color:#1A1F1E}
   <!-- Esquerda -->
   <div class="closing-left">
     <div class="closing-obg">Obrigado.</div>
-    <div class="closing-sub">Relatório gerado automaticamente pelo <strong style="color:rgba(255,255,255,0.75)">Project Pulse BI</strong>. Os dados refletem o estado da planilha no momento da geração.</div>
-    <div class="closing-brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="closing-sub">Relatório gerado automaticamente pelo <strong style="color:rgba(255,255,255,0.75)">Project Wagner BI</strong>. Os dados refletem o estado da planilha no momento da geração.</div>
+    <div class="closing-brand"><i class="fas fa-chart-mixed"></i>Project Wagner BI</div>
   </div>
   <!-- Direita -->
   <div class="closing-right">
-    <div class="closing-inst-chip">${pi.instituicao||'Project Pulse BI'}</div>
+    <div class="closing-inst-chip">${pi.instituicao||'Project Wagner BI'}</div>
     <div class="closing-date"><i class="fas fa-calendar-day"></i>${hoje}</div>
   </div>
   <div class="gold-stripe"></div>
