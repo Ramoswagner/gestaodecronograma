@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Pulse BI | Dashboard para Gestores</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.11.0/libs/pptxgen.bundle.js" onerror="this.onerror=null;this.src='https://unpkg.com/pptxgenjs@3.11.0/libs/pptxgen.bundle.js'"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -385,7 +384,7 @@
         <div class="config-divider"></div>
         <button class="btn-sm btn-ghost" onclick="refreshNow()"><i class="fas fa-sync-alt" id="refreshIcon"></i> Atualizar</button>
         <button class="btn-sm btn-ghost" onclick="exportToCSV()"><i class="fas fa-download"></i> Exportar CSV</button>
-        <button class="btn-sm btn-accent" onclick="generatePPTX()"><i class="fas fa-file-powerpoint"></i> Gerar Apresentação</button>
+        <button class="btn-sm btn-accent" onclick="generatePPTX()"><i class="fas fa-file-pdf"></i> Gerar Relatório PDF</button>
         <div class="last-update-info"><i class="fas fa-clock"></i><span id="lastUpdateText">Aguardando dados...</span></div>
     </div>
 
@@ -434,7 +433,7 @@
             <span class="table-title"><i class="fas fa-list-ul" style="color:var(--primary)"></i> Detalhamento das Atividades</span>
             <div class="table-actions">
                 <button class="btn-sm btn-ghost" onclick="exportToCSV()"><i class="fas fa-download"></i> CSV</button>
-                <button class="btn-sm btn-accent" onclick="generatePPTX()"><i class="fas fa-file-powerpoint"></i> Apresentação</button>
+                <button class="btn-sm btn-accent" onclick="generatePPTX()"><i class="fas fa-file-pdf"></i> Relatório PDF</button>
             </div>
         </div>
         <div class="table-wrapper">
@@ -610,153 +609,316 @@ function updateStatusChart(emDia,atrasados,naoIniciados){
     statusChart=new Chart(ctx,{type:'bar',data:{labels:['Em dia','Atrasados','Não iniciados'],datasets:[{data:[emDia,atrasados,naoIniciados],backgroundColor:['rgba(46,125,50,0.85)','rgba(198,40,40,0.85)','rgba(230,81,0,0.85)'],borderColor:['rgba(46,125,50,1)','rgba(198,40,40,1)','rgba(230,81,0,1)'],borderWidth:2,borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{family:'DM Sans'}}},x:{ticks:{font:{family:'DM Sans',size:12}}}}}});
 }
 
-// ===== PPTX GENERATOR =====
-async function generatePPTX(){
-    if(!lastData.total){showToast('Carregue dados antes de gerar a apresentação','warning');return;}
-    if(typeof PptxGenJS==='undefined'){showToast('Biblioteca de apresentação ainda carregando, aguarde...','warning');return;}
-    showToast('Gerando apresentação...','info');
-    try{
-        const pptx=new PptxGenJS();
-        pptx.layout='LAYOUT_16x9';
-        pptx.title=projectInfo.nome;
+// ===== PDF PRESENTATION GENERATOR =====
+function generatePPTX(){
+    if(!lastData.total){showToast('Carregue dados antes de gerar o relatório','warning');return;}
+    showToast('Preparando relatório PDF...','info');
 
-        // Detectar API de shapes (v3.x usa pptx.shapes, versões mais novas usam ShapeType)
-        const SH=pptx.shapes||pptx.ShapeType||{};
-        const RECT=SH.RECTANGLE||SH.rect||'rect';
-        const OVAL=SH.OVAL||SH.ellipse||'ellipse';
+    const d = lastData;
+    const pi = projectInfo;
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const vpct = parseFloat(d.varPct);
+    const usedN = parseFloat(d.usedPct);
 
-        const G='1B4D3E',GL='2A6E5A',OR='F5B041',WH='FFFFFF',BG='F4F6F5',TX='1A1F1E',ST='6C757D',SU='27AE60',DA='E74C3C',LA='E65100';
-        const hoje=new Date().toLocaleDateString('pt-BR');
-        const nomeProjeto=projectInfo.nome||'Relatório de Status';
-
-        // ── SLIDE 1: CAPA ──
-        const s1=pptx.addSlide();
-        s1.background={color:G};
-        s1.addShape(OVAL,{x:6.8,y:-1.2,w:5.5,h:5.5,fill:{color:GL,transparency:65},line:{color:GL,width:0}});
-        s1.addShape(OVAL,{x:8.2,y:3.2,w:3,h:3,fill:{color:OR,transparency:80},line:{color:OR,width:0}});
-        s1.addShape(RECT,{x:0,y:0,w:0.2,h:5.625,fill:{color:OR},line:{color:OR,width:0}});
-        s1.addShape(RECT,{x:0.55,y:0.52,w:2.4,h:0.44,fill:{color:WH,transparency:85},line:{color:WH,transparency:70,width:1}});
-        s1.addText('PROJECT PULSE BI',{x:0.58,y:0.54,w:2.35,h:0.4,fontSize:8.5,bold:true,color:OR,charSpacing:2,valign:'middle',margin:0});
-        s1.addText(nomeProjeto,{x:0.55,y:1.22,w:7,h:1.5,fontSize:36,bold:true,color:WH,fontFace:'Calibri',lineSpacingMultiple:1.1});
-        s1.addText('Relatório de Status do Projeto',{x:0.55,y:2.82,w:6.5,h:0.5,fontSize:15,color:OR,fontFace:'Calibri'});
-        s1.addShape(RECT,{x:0.55,y:3.42,w:4.5,h:0.04,fill:{color:WH,transparency:65},line:{color:WH,transparency:65,width:0}});
-        if(projectInfo.responsavel)s1.addText(`Responsável: ${projectInfo.responsavel}`,{x:0.55,y:3.56,w:6,h:0.38,fontSize:13,color:'C8DBD6',fontFace:'Calibri'});
-        if(projectInfo.instituicao)s1.addText(projectInfo.instituicao,{x:0.55,y:3.98,w:6,h:0.38,fontSize:13,color:'C8DBD6',fontFace:'Calibri'});
-        s1.addText(`Gerado em ${hoje}`,{x:0.55,y:5.12,w:5,h:0.35,fontSize:11,color:'9ABDB5',fontFace:'Calibri'});
-
-        // ── SLIDE 2: KPIs ──
-        const s2=pptx.addSlide();
-        s2.background={color:BG};
-        s2.addShape(RECT,{x:0,y:0,w:10,h:1.05,fill:{color:G},line:{color:G,width:0}});
-        s2.addShape(RECT,{x:0,y:0,w:0.14,h:5.625,fill:{color:OR},line:{color:OR,width:0}});
-        s2.addText('RESUMO EXECUTIVO',{x:0.35,y:0,w:9.4,h:1.05,fontSize:21,bold:true,color:WH,fontFace:'Calibri',valign:'middle'});
-        const kpis=[
-            {label:'Orçamento Previsto',val:fmoney(lastData.totalPrev),icon:'💰',cor:G},
-            {label:'Custo Real Acumulado',val:fmoney(lastData.totalReal),icon:'📊',cor:parseFloat(lastData.varPct)>0?DA:SU},
-            {label:'Progresso Médio',val:lastData.avgProg+'%',icon:'📈',cor:G},
-            {label:'Total de Atividades',val:String(lastData.total),icon:'📋',cor:G},
-        ];
-        kpis.forEach((k,i)=>{
-            const x=0.28+i*2.38,y=1.22;
-            s2.addShape(RECT,{x,y,w:2.18,h:2.3,fill:{color:WH},line:{color:'DCEAE6',width:1},shadow:{type:'outer',blur:8,offset:3,angle:135,color:'000000',opacity:0.07}});
-            s2.addShape(RECT,{x,y,w:2.18,h:0.09,fill:{color:k.cor},line:{color:k.cor,width:0}});
-            s2.addText(k.icon,{x:x+0.09,y:y+0.18,w:2,h:0.52,fontSize:22,align:'center'});
-            s2.addText(k.val,{x:x+0.09,y:y+0.78,w:2,h:0.6,fontSize:17,bold:true,color:TX,fontFace:'Calibri',align:'center'});
-            s2.addText(k.label,{x:x+0.05,y:y+1.52,w:2.08,h:0.6,fontSize:10,color:ST,fontFace:'Calibri',align:'center'});
-        });
-        s2.addText(`Em andamento: ${lastData.emAndamento}   •   Concluídas: ${lastData.concluidas}   •   Não iniciadas: ${lastData.naoIniciados}`,{x:0.35,y:3.65,w:9.3,h:0.45,fontSize:12,color:ST,fontFace:'Calibri',align:'center'});
-        const vpct=parseFloat(lastData.varPct);
-        s2.addText(`Variação orçamentária: ${Math.abs(lastData.varPct)}% ${vpct>0?'acima':'abaixo'} do previsto`,{x:0.35,y:4.15,w:9.3,h:0.4,fontSize:12,color:vpct>0?DA:SU,fontFace:'Calibri',align:'center',bold:true});
-
-        // ── SLIDE 3: STATUS PRAZOS ──
-        const s3=pptx.addSlide();
-        s3.background={color:WH};
-        s3.addShape(RECT,{x:0,y:0,w:10,h:1.05,fill:{color:G},line:{color:G,width:0}});
-        s3.addShape(RECT,{x:0,y:0,w:0.14,h:5.625,fill:{color:OR},line:{color:OR,width:0}});
-        s3.addText('STATUS DOS PRAZOS',{x:0.35,y:0,w:9,h:1.05,fontSize:21,bold:true,color:WH,fontFace:'Calibri',valign:'middle'});
-        [{label:'Em Dia',val:lastData.emDia,cor:SU},{label:'Atrasados',val:lastData.atrasados,cor:DA},{label:'Não Iniciados',val:lastData.naoIniciados,cor:LA}].forEach((item,i)=>{
-            const y=1.22+i*1.35,pct=lastData.total>0?Math.round(item.val/lastData.total*100):0,bW=5.5;
-            s3.addShape(RECT,{x:0.35,y,w:9.3,h:1.05,fill:{color:'F8FAFA'},line:{color:'E0E8E5',width:1}});
-            s3.addShape(RECT,{x:0.35,y,w:0.14,h:1.05,fill:{color:item.cor},line:{color:item.cor,width:0}});
-            s3.addText(item.label,{x:0.65,y:y+0.1,w:3,h:0.42,fontSize:14,bold:true,color:TX,fontFace:'Calibri',valign:'middle'});
-            s3.addText(`${item.val} atividade${item.val!==1?'s':''}`,{x:0.65,y:y+0.55,w:3,h:0.35,fontSize:12,color:ST,fontFace:'Calibri'});
-            s3.addShape(RECT,{x:3.8,y:y+0.4,w:bW,h:0.24,fill:{color:'E0E8E5'},line:{color:'E0E8E5',width:0}});
-            if(pct>0)s3.addShape(RECT,{x:3.8,y:y+0.4,w:bW*(pct/100),h:0.24,fill:{color:item.cor},line:{color:item.cor,width:0}});
-            s3.addText(`${pct}%`,{x:9.5,y:y+0.32,w:0.7,h:0.35,fontSize:12,bold:true,color:item.cor,fontFace:'Calibri',align:'right'});
-        });
-
-        // ── SLIDE 4: TABELA ──
-        const s4=pptx.addSlide();
-        s4.background={color:WH};
-        s4.addShape(RECT,{x:0,y:0,w:10,h:0.92,fill:{color:G},line:{color:G,width:0}});
-        s4.addShape(RECT,{x:0,y:0,w:0.14,h:5.625,fill:{color:OR},line:{color:OR,width:0}});
-        s4.addText('DETALHAMENTO DAS ATIVIDADES',{x:0.35,y:0,w:9.3,h:0.92,fontSize:18,bold:true,color:WH,fontFace:'Calibri',valign:'middle'});
-        const maxR=Math.min(lastData.rows.length,12);
-        const hOpts={bold:true,color:WH,fill:{color:G},fontSize:9,fontFace:'Calibri'};
-        const tbl=[[
-            {text:'Atividade',options:{bold:true,color:WH,fill:{color:G},fontSize:9,fontFace:'Calibri'}},
-            {text:'Responsável',options:{bold:true,color:WH,fill:{color:G},fontSize:9,fontFace:'Calibri'}},
-            {text:'Término Prev.',options:{bold:true,color:WH,fill:{color:G},fontSize:9,fontFace:'Calibri'}},
-            {text:'Custo Prev.',options:{bold:true,color:WH,fill:{color:G},fontSize:9,fontFace:'Calibri'}},
-            {text:'Custo Real',options:{bold:true,color:WH,fill:{color:G},fontSize:9,fontFace:'Calibri'}},
-            {text:'%',options:{bold:true,color:WH,fill:{color:G},fontSize:9,fontFace:'Calibri'}},
-            {text:'Status',options:{bold:true,color:WH,fill:{color:G},fontSize:9,fontFace:'Calibri'}},
-        ]];
-        for(let i=0;i<maxR;i++){
-            const r=lastData.rows[i],bg=i%2===0?WH:'F4F6F5';
-            const stC=r.st==='Concluído'?'1565C0':r.st==='Em dia'?'2E7D32':r.st==='Atrasado'?'C62828':'E65100';
-            tbl.push([
-                {text:r.atv.substring(0,30),options:{fontSize:8,fontFace:'Calibri',fill:{color:bg}}},
-                {text:r.resp.substring(0,16),options:{fontSize:8,fontFace:'Calibri',fill:{color:bg}}},
-                {text:r.fimP,options:{fontSize:8,fontFace:'Calibri',fill:{color:bg},align:'center'}},
-                {text:fmoney(r.cP),options:{fontSize:8,fontFace:'Calibri',fill:{color:bg},align:'right'}},
-                {text:fmoney(r.cR),options:{fontSize:8,fontFace:'Calibri',fill:{color:bg},align:'right',color:r.cR>r.cP?DA:TX,bold:r.cR>r.cP}},
-                {text:r.prog+'%',options:{fontSize:8,fontFace:'Calibri',fill:{color:bg},align:'center',bold:true}},
-                {text:r.st,options:{fontSize:8,fontFace:'Calibri',fill:{color:bg},color:stC,bold:true}},
-            ]);
-        }
-        s4.addTable(tbl,{x:0.25,y:1.0,w:9.5,h:4.4,border:{pt:0.5,color:'E0E8E5'},colW:[2.9,1.6,1.0,1.1,1.1,0.7,1.1]});
-        if(lastData.rows.length>12)s4.addText(`* Mostrando 12 de ${lastData.rows.length} atividades.`,{x:0.25,y:5.38,w:9.5,h:0.2,fontSize:8,color:ST,fontFace:'Calibri',italic:true});
-
-        // ── SLIDE 5: RISCOS E INSIGHTS ──
-        const s5=pptx.addSlide();
-        s5.background={color:BG};
-        s5.addShape(RECT,{x:0,y:0,w:10,h:1.05,fill:{color:G},line:{color:G,width:0}});
-        s5.addShape(RECT,{x:0,y:0,w:0.14,h:5.625,fill:{color:OR},line:{color:OR,width:0}});
-        s5.addText('RISCOS E INSIGHTS',{x:0.35,y:0,w:9,h:1.05,fontSize:21,bold:true,color:WH,fontFace:'Calibri',valign:'middle'});
-        const insArr=[
-            {icon:'⚠️',titulo:'Riscos Financeiros',texto:`${lastData.sobreOrcamento} atividade${lastData.sobreOrcamento!==1?'s':''} acima do orçamento`,cor:DA},
-            {icon:'📅',titulo:'Riscos de Prazo',texto:`${lastData.atrasados} atividade${lastData.atrasados!==1?'s':''} com prazo vencido`,cor:LA},
-            {icon:'🏆',titulo:'Destaque',texto:lastData.destaque?`Maior progresso: ${lastData.destaque}`:'Nenhum destaque',cor:G},
-            {icon:'💡',titulo:'Performance',texto:parseFloat(lastData.varPct)>10?`Custo ${lastData.varPct}% acima — revisar`:parseFloat(lastData.varPct)<0?'Custo abaixo do previsto — eficiência positiva':'Execução dentro do esperado',cor:SU},
-        ];
-        insArr.forEach((ins,i)=>{
-            const col=i%2,row=Math.floor(i/2),x=0.3+col*4.9,y=1.22+row*2.05;
-            s5.addShape(RECT,{x,y,w:4.5,h:1.78,fill:{color:WH},line:{color:'DCEAE6',width:1},shadow:{type:'outer',blur:6,offset:2,angle:135,color:'000000',opacity:0.06}});
-            s5.addShape(RECT,{x,y,w:4.5,h:0.08,fill:{color:ins.cor},line:{color:ins.cor,width:0}});
-            s5.addText(ins.icon,{x:x+0.15,y:y+0.16,w:0.7,h:0.55,fontSize:22,align:'center'});
-            s5.addText(ins.titulo,{x:x+0.9,y:y+0.16,w:3.45,h:0.44,fontSize:13,bold:true,color:TX,fontFace:'Calibri'});
-            s5.addText(ins.texto,{x:x+0.9,y:y+0.62,w:3.45,h:0.9,fontSize:11,color:ST,fontFace:'Calibri',lineSpacingMultiple:1.2});
-        });
-
-        // ── SLIDE 6: ENCERRAMENTO ──
-        const s6=pptx.addSlide();
-        s6.background={color:G};
-        s6.addShape(OVAL,{x:6.5,y:-0.8,w:5.5,h:5.5,fill:{color:GL,transparency:55},line:{color:GL,width:0}});
-        s6.addShape(RECT,{x:0,y:0,w:0.2,h:5.625,fill:{color:OR},line:{color:OR,width:0}});
-        s6.addText('Obrigado',{x:0.55,y:1.5,w:7,h:1.3,fontSize:48,bold:true,color:WH,fontFace:'Calibri'});
-        s6.addText('Relatório gerado automaticamente pelo Project Pulse BI',{x:0.55,y:2.92,w:6.5,h:0.56,fontSize:14,color:'C8DBD6',fontFace:'Calibri'});
-        s6.addShape(RECT,{x:0.55,y:3.6,w:3.5,h:0.04,fill:{color:WH,transparency:70},line:{color:WH,transparency:70,width:0}});
-        if(projectInfo.instituicao)s6.addText(projectInfo.instituicao,{x:0.55,y:3.76,w:6,h:0.42,fontSize:14,color:OR,fontFace:'Calibri'});
-        s6.addText(`Data: ${hoje}`,{x:0.55,y:5.12,w:5,h:0.35,fontSize:11,color:'9ABDB5',fontFace:'Calibri'});
-
-        const nomeArq=`Status-${nomeProjeto.replace(/[^a-z0-9]/gi,'-')}-${new Date().toISOString().slice(0,10)}.pptx`;
-        await pptx.writeFile({fileName:nomeArq});
-        showToast(`Apresentação "${nomeArq}" baixada!`,'success');
-    }catch(e){
-        console.error('PPTX error:',e);
-        showToast('Erro ao gerar: '+e.message,'error');
+    // Gerar linhas da tabela de atividades
+    const maxR = Math.min(d.rows.length, 14);
+    let tblRows = '';
+    for(let i=0;i<maxR;i++){
+        const r=d.rows[i];
+        const stBg = r.st==='Concluído'?'#e3f2fd':r.st==='Em dia'?'#e8f5e9':r.st==='Atrasado'?'#ffebee':'#fff8e1';
+        const stCl = r.st==='Concluído'?'#1565C0':r.st==='Em dia'?'#2E7D32':r.st==='Atrasado'?'#C62828':'#E65100';
+        const cRCl = r.cR>r.cP?'color:#C62828;font-weight:700':'';
+        tblRows+=`<tr style="background:${i%2===0?'#fff':'#f9fbfa'}">
+            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;max-width:200px">${r.atv}</td>
+            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec">${r.resp}</td>
+            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;text-align:center">${r.fimP}</td>
+            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;text-align:right">${fmoney(r.cP)}</td>
+            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;text-align:right;${cRCl}">${fmoney(r.cR)}</td>
+            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;text-align:center;font-weight:700">${r.prog}%</td>
+            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec">
+                <span style="background:${stBg};color:${stCl};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap">${r.st}</span>
+            </td>
+        </tr>`;
     }
+    if(d.rows.length>14) tblRows+=`<tr><td colspan="7" style="padding:6px 10px;font-size:10px;color:#999;font-style:italic;text-align:center">* Mostrando 14 de ${d.rows.length} atividades</td></tr>`;
+
+    // Barra de progresso SVG inline
+    const barStatus = (val,total,cor)=>{
+        const pct=total>0?Math.round(val/total*100):0;
+        return `<div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1;height:10px;background:#e8f0ec;border-radius:5px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:${cor};border-radius:5px"></div>
+            </div>
+            <span style="font-size:13px;font-weight:700;color:${cor};min-width:36px;text-align:right">${pct}%</span>
+        </div>`;
+    };
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Relatório — ${pi.nome||'Projeto'}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:#fff;color:#1A1F1E}
+
+  /* Cada slide ocupa exatamente uma página A4 paisagem */
+  .slide{
+    width:297mm; height:190mm;
+    position:relative; overflow:hidden;
+    page-break-after:always; page-break-inside:avoid;
+    display:flex; flex-direction:column;
+  }
+  .slide:last-child{page-break-after:auto}
+
+  @media print{
+    html,body{width:297mm;margin:0;padding:0}
+    .slide{page-break-after:always;page-break-inside:avoid}
+    .no-print{display:none!important}
+  }
+  @page{size:A4 landscape;margin:0}
+
+  /* ── UTILIDADES ── */
+  .accent-bar{position:absolute;left:0;top:0;width:7px;height:100%;background:#F5B041}
+  .header-band{position:absolute;top:0;left:0;right:0;height:52px;background:#1B4D3E;display:flex;align-items:center;padding:0 28px 0 24px}
+  .header-band h2{font-family:'Sora',sans-serif;font-size:17px;font-weight:700;color:#fff;letter-spacing:.3px}
+  .slide-num{position:absolute;bottom:14px;right:22px;font-size:10px;color:#9CA3AF}
+  .footer-brand{position:absolute;bottom:14px;left:22px;font-size:10px;color:#9CA3AF}
+
+  /* ── SLIDE 1: CAPA ── */
+  .capa{background:linear-gradient(135deg,#163d31 0%,#1B4D3E 55%,#2A6E5A 100%)}
+  .capa .blob1{position:absolute;right:-60px;top:-60px;width:280px;height:280px;background:rgba(255,255,255,0.05);border-radius:50%}
+  .capa .blob2{position:absolute;right:30px;bottom:-40px;width:180px;height:180px;background:rgba(245,176,65,0.12);border-radius:50%}
+  .capa-content{position:absolute;left:0;top:0;bottom:0;width:100%;display:flex;flex-direction:column;justify-content:center;padding:0 52px}
+  .capa-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#F5B041;padding:5px 14px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:22px;width:fit-content}
+  .capa h1{font-family:'Sora',sans-serif;font-size:34px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:10px;max-width:580px}
+  .capa .subtitle{font-size:15px;color:rgba(255,255,255,0.65);margin-bottom:28px}
+  .capa-divider{width:80px;height:3px;background:#F5B041;border-radius:2px;margin-bottom:20px}
+  .capa-meta{font-size:12px;color:rgba(255,255,255,0.55);line-height:1.9}
+  .capa-meta strong{color:rgba(255,255,255,0.85)}
+
+  /* ── SLIDE 2: KPIs ── */
+  .kpi-slide{background:#F4F6F5;padding-top:58px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:16px 24px 0}
+  .kpi-box{background:#fff;border-radius:12px;padding:18px 16px 14px;border:1px solid #DCEAE6;position:relative;overflow:hidden}
+  .kpi-box::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--c)}
+  .kpi-icon-wrap{width:36px;height:36px;border-radius:8px;background:#E8F3F0;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px}
+  .kpi-val{font-family:'Sora',sans-serif;font-size:20px;font-weight:700;color:#1A1F1E;margin-bottom:4px;line-height:1}
+  .kpi-lbl{font-size:10.5px;color:#6C757D;font-weight:500}
+  .kpi-sub-row{display:flex;justify-content:space-around;padding:12px 24px 0;gap:8px}
+  .kpi-sub{text-align:center;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #DCEAE6;flex:1}
+  .kpi-sub-val{font-size:17px;font-weight:700;color:#1B4D3E;margin-bottom:2px}
+  .kpi-sub-lbl{font-size:10px;color:#9CA3AF}
+  .var-band{margin:10px 24px 0;padding:10px 18px;background:#fff;border-radius:8px;border:1px solid #DCEAE6;display:flex;align-items:center;gap:8px;font-size:12px}
+
+  /* ── SLIDE 3: STATUS PRAZOS ── */
+  .status-slide{background:#fff;padding-top:58px}
+  .status-list{padding:16px 24px 0;display:flex;flex-direction:column;gap:12px}
+  .status-row{background:#F8FAFA;border-radius:10px;border:1px solid #E8F0EC;padding:14px 18px;display:grid;grid-template-columns:160px 1fr 50px;align-items:center;gap:16px;border-left:5px solid var(--c)}
+  .status-row-title{font-size:14px;font-weight:700;color:#1A1F1E}
+  .status-row-sub{font-size:11px;color:#9CA3AF;margin-top:2px}
+
+  /* ── SLIDE 4: TABELA ── */
+  .table-slide{background:#fff;padding-top:52px}
+  .table-wrap{padding:12px 24px 0;overflow:hidden}
+  table.act{width:100%;border-collapse:collapse}
+  table.act th{background:#1B4D3E;color:#fff;padding:8px 10px;font-size:10.5px;font-weight:600;text-align:left;white-space:nowrap}
+  table.act th:nth-child(3),table.act th:nth-child(4),table.act th:nth-child(5),table.act th:nth-child(6){text-align:right}
+  table.act td:nth-child(3){text-align:center}
+  table.act td:nth-child(4),table.act td:nth-child(5){text-align:right}
+  table.act td:nth-child(6){text-align:center}
+
+  /* ── SLIDE 5: RISCOS ── */
+  .risk-slide{background:#F4F6F5;padding-top:58px}
+  .risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px 24px 0}
+  .risk-box{background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #DCEAE6;border-top:4px solid var(--c)}
+  .risk-icon{font-size:22px;margin-bottom:8px}
+  .risk-title{font-size:13px;font-weight:700;color:#1A1F1E;margin-bottom:5px}
+  .risk-text{font-size:11.5px;color:#6C757D;line-height:1.55}
+
+  /* ── SLIDE 6: ENCERRAMENTO ── */
+  .closing{background:linear-gradient(135deg,#163d31 0%,#1B4D3E 55%,#2A6E5A 100%);display:flex;align-items:center;justify-content:center;text-align:center}
+  .closing-inner{position:relative;z-index:1}
+  .closing-blob{position:absolute;right:-60px;top:-80px;width:300px;height:300px;background:rgba(255,255,255,0.04);border-radius:50%}
+  .closing h1{font-family:'Sora',sans-serif;font-size:44px;font-weight:800;color:#fff;margin-bottom:12px}
+  .closing p{font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:24px}
+  .closing-tag{display:inline-block;background:#F5B041;color:#163d31;padding:7px 20px;border-radius:20px;font-size:12px;font-weight:700}
+
+  /* Botão de impressão - não aparece no PDF */
+  #print-btn{
+    position:fixed;bottom:30px;right:30px;
+    background:#1B4D3E;color:#fff;border:none;
+    padding:14px 26px;border-radius:50px;
+    font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;
+    cursor:pointer;box-shadow:0 8px 24px rgba(27,77,62,0.35);
+    display:flex;align-items:center;gap:10px;z-index:9999;
+    transition:all .25s
+  }
+  #print-btn:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(27,77,62,0.45)}
+</style>
+</head>
+<body>
+
+<!-- ── SLIDE 1: CAPA ── -->
+<div class="slide capa">
+  <div class="accent-bar"></div>
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="capa-content">
+    <div class="capa-tag">📊 Project Pulse BI</div>
+    <h1>${pi.nome||'Relatório de Status do Projeto'}</h1>
+    <div class="subtitle">Relatório de Status · ${hoje}</div>
+    <div class="capa-divider"></div>
+    <div class="capa-meta">
+      ${pi.responsavel?`<div><strong>Responsável:</strong> ${pi.responsavel}</div>`:''}
+      ${pi.instituicao?`<div><strong>Instituição:</strong> ${pi.instituicao}</div>`:''}
+      <div><strong>Data de geração:</strong> ${hoje}</div>
+    </div>
+  </div>
+  <div class="slide-num">1 / 6</div>
+</div>
+
+<!-- ── SLIDE 2: RESUMO EXECUTIVO ── -->
+<div class="slide kpi-slide">
+  <div class="accent-bar"></div>
+  <div class="header-band"><h2>Resumo Executivo</h2></div>
+  <div class="kpi-grid">
+    <div class="kpi-box" style="--c:#1B4D3E">
+      <div class="kpi-icon-wrap">💰</div>
+      <div class="kpi-val">${fmoney(d.totalPrev)}</div>
+      <div class="kpi-lbl">Orçamento Previsto</div>
+    </div>
+    <div class="kpi-box" style="--c:${vpct>0?'#E74C3C':'#27AE60'}">
+      <div class="kpi-icon-wrap">📊</div>
+      <div class="kpi-val">${fmoney(d.totalReal)}</div>
+      <div class="kpi-lbl">Custo Real Acumulado</div>
+    </div>
+    <div class="kpi-box" style="--c:#1B4D3E">
+      <div class="kpi-icon-wrap">📈</div>
+      <div class="kpi-val">${d.avgProg}%</div>
+      <div class="kpi-lbl">Progresso Médio</div>
+    </div>
+    <div class="kpi-box" style="--c:#1B4D3E">
+      <div class="kpi-icon-wrap">📋</div>
+      <div class="kpi-val">${d.total}</div>
+      <div class="kpi-lbl">Total de Atividades</div>
+    </div>
+  </div>
+  <div class="kpi-sub-row">
+    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#27AE60">${d.concluidas}</div><div class="kpi-sub-lbl">Concluídas</div></div>
+    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#3498DB">${d.emAndamento}</div><div class="kpi-sub-lbl">Em andamento</div></div>
+    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#E65100">${d.naoIniciados}</div><div class="kpi-sub-lbl">Não iniciadas</div></div>
+    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#E74C3C">${d.sobreOrcamento}</div><div class="kpi-sub-lbl">Acima do orçamento</div></div>
+  </div>
+  <div class="var-band">
+    <span style="font-size:16px">${vpct>0?'📈':'📉'}</span>
+    <span style="font-weight:600;color:${vpct>0?'#C62828':'#2E7D32'}">Variação orçamentária: ${Math.abs(d.varPct)}% ${vpct>0?'acima':'abaixo'} do previsto</span>
+    <span style="margin-left:auto;color:#9CA3AF;font-size:11px">${usedN}% do orçamento utilizado</span>
+  </div>
+  <div class="footer-brand">Project Pulse BI</div>
+  <div class="slide-num">2 / 6</div>
+</div>
+
+<!-- ── SLIDE 3: STATUS DOS PRAZOS ── -->
+<div class="slide status-slide">
+  <div class="accent-bar"></div>
+  <div class="header-band"><h2>Status dos Prazos</h2></div>
+  <div class="status-list">
+    <div class="status-row" style="--c:#27AE60">
+      <div><div class="status-row-title">✅ Em Dia</div><div class="status-row-sub">${d.emDia} atividade${d.emDia!==1?'s':''}</div></div>
+      <div>${barStatus(d.emDia,d.total,'#27AE60')}</div>
+      <div style="font-size:13px;font-weight:700;color:#27AE60;text-align:right">${d.total>0?Math.round(d.emDia/d.total*100):0}%</div>
+    </div>
+    <div class="status-row" style="--c:#E74C3C">
+      <div><div class="status-row-title">🔴 Atrasados</div><div class="status-row-sub">${d.atrasados} atividade${d.atrasados!==1?'s':''}</div></div>
+      <div>${barStatus(d.atrasados,d.total,'#E74C3C')}</div>
+      <div style="font-size:13px;font-weight:700;color:#E74C3C;text-align:right">${d.total>0?Math.round(d.atrasados/d.total*100):0}%</div>
+    </div>
+    <div class="status-row" style="--c:#E65100">
+      <div><div class="status-row-title">⏳ Não Iniciados</div><div class="status-row-sub">${d.naoIniciados} atividade${d.naoIniciados!==1?'s':''}</div></div>
+      <div>${barStatus(d.naoIniciados,d.total,'#E65100')}</div>
+      <div style="font-size:13px;font-weight:700;color:#E65100;text-align:right">${d.total>0?Math.round(d.naoIniciados/d.total*100):0}%</div>
+    </div>
+  </div>
+  <div class="footer-brand">Project Pulse BI</div>
+  <div class="slide-num">3 / 6</div>
+</div>
+
+<!-- ── SLIDE 4: TABELA DE ATIVIDADES ── -->
+<div class="slide table-slide">
+  <div class="accent-bar"></div>
+  <div class="header-band"><h2>Detalhamento das Atividades</h2></div>
+  <div class="table-wrap">
+    <table class="act">
+      <thead><tr>
+        <th>Atividade</th><th>Responsável</th><th style="text-align:center">Término Prev.</th>
+        <th style="text-align:right">Custo Prev.</th><th style="text-align:right">Custo Real</th>
+        <th style="text-align:center">%</th><th>Status</th>
+      </tr></thead>
+      <tbody>${tblRows}</tbody>
+    </table>
+  </div>
+  <div class="footer-brand">Project Pulse BI</div>
+  <div class="slide-num">4 / 6</div>
+</div>
+
+<!-- ── SLIDE 5: RISCOS E INSIGHTS ── -->
+<div class="slide risk-slide">
+  <div class="accent-bar"></div>
+  <div class="header-band"><h2>Riscos e Insights</h2></div>
+  <div class="risk-grid">
+    <div class="risk-box" style="--c:#E74C3C">
+      <div class="risk-icon">⚠️</div>
+      <div class="risk-title">Riscos Financeiros</div>
+      <div class="risk-text">${d.sobreOrcamento} atividade${d.sobreOrcamento!==1?'s':''} com custo real acima do previsto. Revisão orçamentária ${d.sobreOrcamento>0?'recomendada':'não necessária no momento'}.</div>
+    </div>
+    <div class="risk-box" style="--c:#E65100">
+      <div class="risk-icon">📅</div>
+      <div class="risk-title">Riscos de Prazo</div>
+      <div class="risk-text">${d.atrasados} atividade${d.atrasados!==1?'s':''} com prazo vencido e ainda em andamento. ${d.atrasados>0?'Ação corretiva necessária.':'Cronograma sob controle.'}</div>
+    </div>
+    <div class="risk-box" style="--c:#1B4D3E">
+      <div class="risk-icon">🏆</div>
+      <div class="risk-title">Destaque do Período</div>
+      <div class="risk-text">${d.destaque?`Atividade com maior progresso: <strong>${d.destaque}</strong>.`:'Nenhum destaque identificado neste período.'}</div>
+    </div>
+    <div class="risk-box" style="--c:${vpct>10?'#E74C3C':vpct<0?'#27AE60':'#3498DB'}">
+      <div class="risk-icon">💡</div>
+      <div class="risk-title">Performance Orçamentária</div>
+      <div class="risk-text">${vpct>10?`Custo ${d.varPct}% acima do previsto — revisão de escopo e orçamento urgente.`:vpct<0?`Custo ${Math.abs(d.varPct)}% abaixo do previsto — eficiência positiva na execução.`:`Execução financeira dentro dos parâmetros esperados (variação de ${Math.abs(d.varPct)}%).`}</div>
+    </div>
+  </div>
+  <div class="footer-brand">Project Pulse BI</div>
+  <div class="slide-num">5 / 6</div>
+</div>
+
+<!-- ── SLIDE 6: ENCERRAMENTO ── -->
+<div class="slide closing">
+  <div class="closing-blob"></div>
+  <div class="accent-bar"></div>
+  <div class="closing-inner">
+    <h1>Obrigado</h1>
+    <p>Relatório gerado automaticamente pelo Project Pulse BI · ${hoje}</p>
+    ${pi.instituicao?`<div class="closing-tag">${pi.instituicao}</div>`:'<div class="closing-tag">Project Pulse BI</div>'}
+  </div>
+  <div class="slide-num" style="color:rgba(255,255,255,0.35)">6 / 6</div>
+</div>
+
+<!-- Botão flutuante de impressão -->
+<button id="print-btn" class="no-print" onclick="window.print()">
+  🖨️ Salvar como PDF
+</button>
+
+</body>
+</html>`;
+
+    // Abrir em nova janela e acionar print
+    const win = window.open('','_blank','width=1200,height=800');
+    if(!win){ showToast('Permita pop-ups para gerar o relatório','warning'); return; }
+    win.document.write(html);
+    win.document.close();
+    showToast('Relatório aberto! Clique em "Salvar como PDF" na nova janela.','success');
 }
 
 // ===== SAMPLE DATA =====
