@@ -36,6 +36,8 @@
         
         .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
         .over-budget { color: #d32f2f; font-weight: bold; }
+        .status-atrasado { color: #d32f2f; font-weight: bold; }
+        .status-em-dia { color: #2e7d32; }
     </style>
 </head>
 <body>
@@ -56,37 +58,60 @@
         <div class="card">
             <h3>Saúde Financeira</h3>
             <canvas id="financeChart"></canvas>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px;">
+                <span>Total Previsto: <strong id="totalPrevisto">R$ 0</strong></span>
+                <span>Total Real: <strong id="totalReal">R$ 0</strong></span>
+            </div>
         </div>
 
         <div class="card">
             <h3>Progresso Geral</h3>
             <div id="avgProgress" style="font-size: 48px; font-weight: bold; text-align: center; margin-top: 20px; color: var(--accent);">0%</div>
-            <p style="text-align: center; color: #666;">Média de conclusão do projeto</p>
+            <p style="text-align: center; color: #666;">Média de conclusão dos projetos</p>
         </div>
 
         <div class="card">
-            <h3>Tarefas</h3>
-            <div id="taskCount" style="font-size: 48px; font-weight: bold; text-align: center; margin-top: 20px; color: var(--primary);">0</div>
-            <p style="text-align: center; color: #666;">Total de atividades listadas</p>
+            <h3>Status dos Prazos</h3>
+            <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                <div style="text-align: center;">
+                    <div id="emDia" style="font-size: 32px; font-weight: bold; color: #2e7d32;">0</div>
+                    <small>Em dia</small>
+                </div>
+                <div style="text-align: center;">
+                    <div id="atrasados" style="font-size: 32px; font-weight: bold; color: #d32f2f;">0</div>
+                    <small>Atrasados</small>
+                </div>
+                <div style="text-align: center;">
+                    <div id="naoIniciados" style="font-size: 32px; font-weight: bold; color: #ff9800;">0</div>
+                    <small>Não iniciados</small>
+                </div>
+            </div>
         </div>
 
         <div class="card full-width">
             <h3>Detalhamento das Atividades</h3>
-            <table id="projectTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Atividade</th>
-                        <th>Responsável</th>
-                        <th>Prazo</th>
-                        <th>Custo Real</th>
-                        <th>Progresso</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <tr><td colspan="6" style="text-align:center;">Insira o link e clique em Atualizar</td></tr>
-                </tbody>
-            </table>
+            <div style="overflow-x: auto;">
+                <table id="projectTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Atividade</th>
+                            <th>Responsável</th>
+                            <th>Início Prev.</th>
+                            <th>Término Prev.</th>
+                            <th>Início Real</th>
+                            <th>Término Real</th>
+                            <th>Custo Prev.</th>
+                            <th>Custo Real</th>
+                            <th>Progresso</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="11" style="text-align:center;">Insira o link e clique em Atualizar</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -97,58 +122,196 @@ let financeChart = null;
 async function fetchData() {
     const url = document.getElementById('csvUrl').value;
     if(!url.includes("output=csv")) {
-        alert("Atenção: Use o link de 'Publicar na Web' com formato CSV!");
+        alert("Atenção: Use o link de 'Publicar na Web' com formato CSV!\n\nComo fazer:\n1. No Google Sheets, vá em Arquivo > Compartilhar > Publicar na web\n2. Escolha o formato CSV\n3. Copie o link gerado");
         return;
     }
 
     try {
         const response = await fetch(url);
         const csvData = await response.text();
-        const rows = csvData.split('\n').map(row => row.split(',')).slice(1);
-
+        
+        // Parse CSV corretamente considerando aspas
+        const rows = parseCSV(csvData);
+        
+        // Pular cabeçalho
+        const dataRows = rows.slice(1);
+        
         let totalPrevisto = 0;
         let totalReal = 0;
         let progressoSoma = 0;
+        let projetosAtivos = 0;
         let tableHtml = "";
+        
+        let emDia = 0;
+        let atrasados = 0;
+        let naoIniciados = 0;
 
-        rows.forEach(cols => {
-            if(cols.length < 5) return;
-
-            const cPrevisto = parseFloat(cols[7]) || 0;
-            const cReal = parseFloat(cols[8]) || 0;
-            const prog = parseInt(cols[9]) || 0;
+        dataRows.forEach(cols => {
+            if(cols.length < 10) return;
             
-            totalPrevisto += cPrevisto;
-            totalReal += cReal;
-            progressoSoma += prog;
-
-            const isOver = cReal > cPrevisto ? 'over-budget' : '';
+            // Extrair dados conforme as colunas especificadas
+            const id = cols[0] || '-';
+            const atividade = cols[1] || '-';
+            const responsavel = cols[2] || '-';
+            const inicioPrevisto = cols[3] || '-';
+            const terminoPrevisto = cols[4] || '-';
+            const inicioReal = cols[5] || '-';
+            const terminoReal = cols[6] || '-';
+            const custoPrevisto = parseFloat(cols[7]) || 0;
+            const custoReal = parseFloat(cols[8]) || 0;
+            const progresso = parseInt(cols[9]) || 0;
+            
+            totalPrevisto += custoPrevisto;
+            totalReal += custoReal;
+            
+            if(progresso > 0) {
+                progressoSoma += progresso;
+                projetosAtivos++;
+            }
+            
+            const isOver = custoReal > custoPrevisto ? 'over-budget' : '';
+            
+            // Determinar status do prazo
+            let statusClass = '';
+            let statusText = '';
+            
+            if(progresso === 0) {
+                naoIniciados++;
+                statusClass = 'nao-iniciado';
+                statusText = 'Não iniciado';
+            } else if(terminoReal && terminoReal !== '-' && terminoReal.trim() !== '') {
+                emDia++;
+                statusClass = 'em-dia';
+                statusText = 'Concluído';
+            } else {
+                // Verificar se está atrasado comparando com a data prevista
+                const hoje = new Date();
+                if(terminoPrevisto && terminoPrevisto !== '-') {
+                    const dataTermino = parseDate(terminoPrevisto);
+                    if(dataTermino && hoje > dataTermino && progresso < 100) {
+                        atrasados++;
+                        statusClass = 'atrasado';
+                        statusText = 'Atrasado';
+                    } else {
+                        emDia++;
+                        statusClass = 'em-dia';
+                        statusText = 'Em dia';
+                    }
+                } else {
+                    emDia++;
+                    statusClass = 'em-dia';
+                    statusText = 'Em dia';
+                }
+            }
 
             tableHtml += `
                 <tr>
-                    <td>${cols[0]}</td>
-                    <td><strong>${cols[1]}</strong></td>
-                    <td>${cols[2]}</td>
-                    <td>${cols[4]}</td>
-                    <td class="${isOver}">R$ ${cReal.toFixed(2)}</td>
+                    <td>${id}</td>
+                    <td><strong>${atividade}</strong></td>
+                    <td>${responsavel}</td>
+                    <td>${inicioPrevisto}</td>
+                    <td>${terminoPrevisto}</td>
+                    <td>${inicioReal || '-'}</td>
+                    <td>${terminoReal || '-'}</td>
+                    <td>R$ ${custoPrevisto.toFixed(2)}</td>
+                    <td class="${isOver}">R$ ${custoReal.toFixed(2)}</td>
                     <td>
-                        <div style="background: #eee; border-radius: 5px; height: 10px; width: 100px;">
-                            <div style="background: var(--accent); width: ${prog}%; height: 100%; border-radius: 5px;"></div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <div style="background: #eee; border-radius: 5px; height: 10px; width: 80px;">
+                                <div style="background: var(--accent); width: ${progresso}%; height: 100%; border-radius: 5px;"></div>
+                            </div>
+                            ${progresso}%
                         </div>
-                        ${prog}%
+                    </td>
+                    <td>
+                        <span class="status-pill ${statusClass}">${statusText}</span>
                     </td>
                 </tr>`;
         });
 
         document.getElementById('tableBody').innerHTML = tableHtml;
-        document.getElementById('taskCount').innerText = rows.length;
-        document.getElementById('avgProgress').innerText = Math.round(progressoSoma / rows.length) + "%";
+        document.getElementById('taskCount')?.innerText = dataRows.length;
+        
+        const mediaProgresso = projetosAtivos > 0 ? Math.round(progressoSoma / projetosAtivos) : 0;
+        document.getElementById('avgProgress').innerText = mediaProgresso + "%";
+        
+        document.getElementById('totalPrevisto').innerText = formatMoney(totalPrevisto);
+        document.getElementById('totalReal').innerText = formatMoney(totalReal);
+        
+        document.getElementById('emDia').innerText = emDia;
+        document.getElementById('atrasados').innerText = atrasados;
+        document.getElementById('naoIniciados').innerText = naoIniciados;
 
         updateChart(totalPrevisto, totalReal);
 
     } catch (e) {
-        alert("Erro ao conectar com a planilha. Verifique as permissões.");
+        console.error(e);
+        alert("Erro ao conectar com a planilha. Verifique as permissões e o formato dos dados.");
     }
+}
+
+function parseCSV(csvText) {
+    const lines = [];
+    let currentLine = [];
+    let currentField = '';
+    let inQuotes = false;
+    
+    for(let i = 0; i < csvText.length; i++) {
+        const char = csvText[i];
+        const nextChar = csvText[i + 1];
+        
+        if(char === '"' && !inQuotes) {
+            inQuotes = true;
+        } else if(char === '"' && inQuotes && nextChar === '"') {
+            currentField += '"';
+            i++;
+        } else if(char === '"' && inQuotes) {
+            inQuotes = false;
+        } else if(char === ',' && !inQuotes) {
+            currentLine.push(currentField);
+            currentField = '';
+        } else if((char === '\n' || char === '\r') && !inQuotes) {
+            if(char === '\r' && nextChar === '\n') {
+                i++;
+            }
+            if(currentField || currentLine.length > 0) {
+                currentLine.push(currentField);
+                lines.push(currentLine);
+            }
+            currentLine = [];
+            currentField = '';
+        } else {
+            currentField += char;
+        }
+    }
+    
+    if(currentField || currentLine.length > 0) {
+        currentLine.push(currentField);
+        lines.push(currentLine);
+    }
+    
+    return lines;
+}
+
+function parseDate(dateStr) {
+    if(!dateStr || dateStr === '-') return null;
+    
+    // Tenta diferentes formatos de data
+    const parts = dateStr.split('/');
+    if(parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+    
+    const parts2 = dateStr.split('-');
+    if(parts2.length === 3) {
+        return new Date(parts2[0], parts2[1] - 1, parts2[2]);
+    }
+    
+    return new Date(dateStr);
+}
+
+function formatMoney(value) {
+    return 'R$ ' + value.toFixed(2).replace('.', ',');
 }
 
 function updateChart(previsto, real) {
@@ -158,13 +321,27 @@ function updateChart(previsto, real) {
     financeChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Gasto Real', 'Orçamento Restante'],
+            labels: ['Gasto Real', 'Saldo Restante'],
             datasets: [{
-                data: [real, previsto > real ? previsto - real : 0],
-                backgroundColor: ['#63783D', '#CFE0BC']
+                data: [real, Math.max(0, previsto - real)],
+                backgroundColor: ['#63783D', '#CFE0BC'],
+                borderWidth: 0
             }]
         },
-        options: { cutout: '70%' }
+        options: { 
+            cutout: '70%',
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.raw || 0;
+                            return label + ': ' + formatMoney(value);
+                        }
+                    }
+                }
+            }
+        }
     });
 }
 </script>
