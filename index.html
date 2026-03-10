@@ -2,771 +2,154 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Pulse BI | Enterprise Dashboard</title>
+    <title>Project Pulse BI | Dashboard Real-Time</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-
         :root {
-            --primary: #1B4D3E;
-            --primary-light: #2A6E5A;
-            --primary-soft: #E8F3F0;
-            --accent: #F5B041;
-            --success: #27AE60;
-            --danger: #E74C3C;
-            --warning: #F39C12;
-            --info: #3498DB;
-            --dark: #1E2B2A;
-            --gray-900: #212529;
-            --gray-800: #343A40;
-            --gray-700: #495057;
-            --gray-600: #6C757D;
-            --gray-500: #ADB5BD;
-            --gray-400: #CED4DA;
-            --gray-300: #DEE2E6;
-            --gray-200: #E9ECEF;
-            --gray-100: #F8F9FA;
-            --white: #FFFFFF;
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
-            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 16px;
-            --radius-xl: 24px;
+            --bg: #f4f7f1;
+            --primary: #63783D;  /* Verde Escuro */
+            --accent: #7FA653;   /* Verde Médio */
+            --light-green: #CFE0BC;
+            --soft-green: #99CD85;
+            --dark: #233022;
         }
 
-        body {
-            background: linear-gradient(135deg, #F5F7FA 0%, #F0F4F8 100%);
-            min-height: 100vh;
-            padding: 24px;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--dark); }
+        .container { max-width: 1200px; margin: auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .input-area { display: flex; gap: 10px; }
+        input { padding: 12px; border: 2px solid var(--light-green); border-radius: 8px; width: 350px; outline: none; }
+        input:focus { border-color: var(--accent); }
+        button { background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: var(--dark); transform: translateY(-2px); }
 
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        /* Header Moderno */
-        .header {
-            background: var(--white);
-            backdrop-filter: blur(10px);
-            border-radius: var(--radius-xl);
-            padding: 24px 32px;
-            margin-bottom: 32px;
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255,255,255,0.5);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-        }
-
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .logo-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            box-shadow: var(--shadow-md);
-        }
-
-        .logo-text h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--gray-900);
-            margin-bottom: 4px;
-            letter-spacing: -0.5px;
-        }
-
-        .logo-text p {
-            color: var(--gray-600);
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .input-area {
-            display: flex;
-            gap: 12px;
-            background: var(--gray-100);
-            padding: 8px;
-            border-radius: var(--radius-xl);
-            border: 1px solid var(--gray-300);
-        }
-
-        .input-area input {
-            padding: 14px 20px;
-            border: none;
-            background: transparent;
-            width: 400px;
-            font-size: 14px;
-            color: var(--gray-800);
-            outline: none;
-        }
-
-        .input-area input::placeholder {
-            color: var(--gray-500);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: var(--radius-lg);
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: var(--shadow-md);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-            filter: brightness(1.1);
-        }
-
-        .btn-primary i {
-            font-size: 16px;
-        }
-
-        /* KPI Cards */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        .kpi-card {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 24px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--gray-200);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .kpi-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
-        }
-
-        .kpi-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, transparent 50%, rgba(27, 77, 62, 0.03) 100%);
-            border-radius: 50%;
-        }
-
-        .kpi-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .kpi-title {
-            color: var(--gray-600);
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .kpi-icon {
-            width: 48px;
-            height: 48px;
-            background: var(--primary-soft);
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
-            font-size: 20px;
-        }
-
-        .kpi-value {
-            font-size: 42px;
-            font-weight: 700;
-            color: var(--gray-900);
-            line-height: 1.2;
-            margin-bottom: 8px;
-            letter-spacing: -1px;
-        }
-
-        .kpi-trend {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: var(--gray-600);
-        }
-
-        .trend-up { color: var(--success); }
-        .trend-down { color: var(--danger); }
-
-        /* Dashboard Grid */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        .card {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 24px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--gray-200);
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            box-shadow: var(--shadow-lg);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .card-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--gray-800);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .card-header i {
-            color: var(--primary);
-            font-size: 20px;
-        }
-
-        .badge {
-            background: var(--primary-soft);
-            color: var(--primary);
-            padding: 4px 12px;
-            border-radius: 100px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        /* Gráficos */
-        .chart-container {
-            position: relative;
-            height: 250px;
-            width: 100%;
-        }
-
-        /* Tabela */
-        .table-container {
-            grid-column: span 3;
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            padding: 24px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--gray-200);
-            overflow: hidden;
-        }
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        .table-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--gray-300);
-            padding: 8px 16px;
-            border-radius: var(--radius-md);
-            color: var(--gray-700);
-            font-weight: 500;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-outline:hover {
-            background: var(--gray-100);
-            border-color: var(--gray-400);
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--gray-200);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        th {
-            background: var(--gray-100);
-            color: var(--gray-700);
-            font-weight: 600;
-            padding: 16px;
-            text-align: left;
-            white-space: nowrap;
-            border-bottom: 2px solid var(--gray-300);
-        }
-
-        td {
-            padding: 16px;
-            border-bottom: 1px solid var(--gray-200);
-            color: var(--gray-800);
-        }
-
-        tr:hover {
-            background: var(--gray-50);
-        }
-
-        /* Status Indicators */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 12px;
-            border-radius: 100px;
-            font-size: 12px;
-            font-weight: 600;
-            gap: 6px;
-        }
-
-        .status-em-dia {
-            background: #E8F5E9;
-            color: #2E7D32;
-        }
-
-        .status-atrasado {
-            background: #FFEBEE;
-            color: #C62828;
-        }
-
-        .status-nao-iniciado {
-            background: #FFF3E0;
-            color: #E65100;
-        }
-
-        .progress-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 120px;
-        }
-
-        .progress-track {
-            flex: 1;
-            height: 8px;
-            background: var(--gray-200);
-            border-radius: 100px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            border-radius: 100px;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            transition: width 0.3s ease;
-        }
-
-        .progress-fill.warning {
-            background: linear-gradient(90deg, var(--warning), #F7DC6F);
-        }
-
-        .progress-fill.danger {
-            background: linear-gradient(90deg, var(--danger), #F1948A);
-        }
-
-        .over-budget {
-            color: var(--danger);
-            font-weight: 600;
-            background: #FFEBEE;
-            padding: 4px 8px;
-            border-radius: var(--radius-sm);
-        }
-
-        /* Tooltips e modais */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: help;
-        }
-
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            background: var(--gray-900);
-            color: white;
-            padding: 8px 12px;
-            border-radius: var(--radius-md);
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            font-size: 12px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Responsividade */
-        @media (max-width: 1400px) {
-            .kpi-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .table-container {
-                grid-column: span 1;
-            }
-            
-            .header {
-                flex-direction: column;
-                gap: 20px;
-            }
-            
-            .input-area {
-                width: 100%;
-            }
-            
-            .input-area input {
-                width: 100%;
-            }
-        }
-
-        /* Animações */
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .kpi-card, .card, .table-container {
-            animation: slideIn 0.5s ease forwards;
-        }
-
-        .loading {
-            position: relative;
-            pointer-events: none;
-            opacity: 0.7;
-        }
-
-        .loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 30px;
-            height: 30px;
-            border: 3px solid var(--gray-300);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .full-width { grid-column: span 3; }
+        
+        h3 { margin-top: 0; color: var(--primary); border-left: 4px solid var(--accent); padding-left: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: var(--light-green); color: var(--primary); padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        
+        .status-pill { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .over-budget { color: #d32f2f; font-weight: bold; }
+        .status-atrasado { color: #d32f2f; font-weight: bold; }
+        .status-em-dia { color: #2e7d32; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Header Moderno -->
     <div class="header">
-        <div class="logo-area">
-            <div class="logo-icon">
-                <i class="fas fa-chart-line"></i>
-            </div>
-            <div class="logo-text">
-                <h1>Project Pulse BI</h1>
-                <p>Enterprise Dashboard • Real-time Analytics</p>
-            </div>
+        <div>
+            <h1 style="margin:0; color: var(--primary);">Project Pulse</h1>
+            <small>Panorama Dinâmico de Projetos</small>
         </div>
         <div class="input-area">
-            <input type="text" id="csvUrl" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv">
-            <button class="btn-primary" onclick="fetchData()">
-                <i class="fas fa-sync-alt"></i>
-                Atualizar Dashboard
-            </button>
+            <input type="text" id="csvUrl" placeholder="Cole o link do CSV Publicado aqui...">
+            <button onclick="fetchData()">Atualizar BI</button>
         </div>
     </div>
 
-    <!-- KPI Cards -->
-    <div class="kpi-grid">
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="kpi-title">Valor Total Previsto</span>
-                <div class="kpi-icon">
-                    <i class="fas fa-coins"></i>
-                </div>
-            </div>
-            <div class="kpi-value" id="totalPrevisto">R$ 0</div>
-            <div class="kpi-trend">
-                <span class="trend-up"><i class="fas fa-arrow-up"></i> Orçamento total</span>
-            </div>
-        </div>
-
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="kpi-title">Custo Real Acumulado</span>
-                <div class="kpi-icon">
-                    <i class="fas fa-chart-pie"></i>
-                </div>
-            </div>
-            <div class="kpi-value" id="totalReal">R$ 0</div>
-            <div class="kpi-trend">
-                <span id="variacaoOrcamento" class="trend-up"><i class="fas fa-percent"></i> Dentro do orçamento</span>
-            </div>
-        </div>
-
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="kpi-title">Progresso Médio</span>
-                <div class="kpi-icon">
-                    <i class="fas fa-tasks"></i>
-                </div>
-            </div>
-            <div class="kpi-value" id="avgProgress">0%</div>
-            <div class="kpi-trend">
-                <span id="projetosAtivos"><i class="fas fa-play-circle"></i> Projetos em andamento</span>
-            </div>
-        </div>
-
-        <div class="kpi-card">
-            <div class="kpi-header">
-                <span class="kpi-title">Total de Atividades</span>
-                <div class="kpi-icon">
-                    <i class="fas fa-clipboard-list"></i>
-                </div>
-            </div>
-            <div class="kpi-value" id="totalAtividades">0</div>
-            <div class="kpi-trend">
-                <span id="atividadesConcluidas"><i class="fas fa-check-circle"></i> Concluídas: 0</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Grid Principal -->
     <div class="dashboard-grid">
-        <!-- Gráfico de Saúde Financeira -->
         <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-chart-pie"></i> Saúde Financeira</h3>
-                <span class="badge" id="percentualGasto">0% do orçamento</span>
-            </div>
-            <div class="chart-container">
-                <canvas id="financeChart"></canvas>
+            <h3>Saúde Financeira</h3>
+            <canvas id="financeChart"></canvas>
+            <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px;">
+                <span>Total Previsto: <strong id="totalPrevisto">R$ 0</strong></span>
+                <span>Total Real: <strong id="totalReal">R$ 0</strong></span>
             </div>
         </div>
 
-        <!-- Gráfico de Distribuição de Status -->
         <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-clock"></i> Status dos Prazos</h3>
-                <span class="badge" id="totalStatus">0 atividades</span>
-            </div>
-            <div class="chart-container">
-                <canvas id="statusChart"></canvas>
-            </div>
+            <h3>Progresso Geral</h3>
+            <div id="avgProgress" style="font-size: 48px; font-weight: bold; text-align: center; margin-top: 20px; color: var(--accent);">0%</div>
+            <p style="text-align: center; color: #666;">Média de conclusão dos projetos</p>
         </div>
 
-        <!-- Card de Insights Rápidos -->
         <div class="card">
-            <div class="card-header">
-                <h3><i class="fas fa-lightbulb"></i> Insights Rápidos</h3>
-                <span class="badge">Análise em tempo real</span>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--gray-100); border-radius: var(--radius-lg);">
-                    <div style="width: 45px; height: 45px; background: var(--primary-soft); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">Riscos Imediatos</div>
-                        <div style="font-size: 13px; color: var(--gray-600);" id="riscosText">Nenhum risco identificado</div>
-                    </div>
+            <h3>Status dos Prazos</h3>
+            <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+                <div style="text-align: center;">
+                    <div id="emDia" style="font-size: 32px; font-weight: bold; color: #2e7d32;">0</div>
+                    <small>Em dia</small>
                 </div>
-                
-                <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--gray-100); border-radius: var(--radius-lg);">
-                    <div style="width: 45px; height: 45px; background: var(--primary-soft); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">Destaque da Semana</div>
-                        <div style="font-size: 13px; color: var(--gray-600);" id="destaqueText">Carregando...</div>
-                    </div>
+                <div style="text-align: center;">
+                    <div id="atrasados" style="font-size: 32px; font-weight: bold; color: #d32f2f;">0</div>
+                    <small>Atrasados</small>
                 </div>
-
-                <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--gray-100); border-radius: var(--radius-lg);">
-                    <div style="width: 45px; height: 45px; background: var(--primary-soft); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div>
-                        <div style="font-weight: 600; margin-bottom: 4px;">Performance</div>
-                        <div style="font-size: 13px; color: var(--gray-600);" id="performanceText">Análise em andamento</div>
-                    </div>
+                <div style="text-align: center;">
+                    <div id="naoIniciados" style="font-size: 32px; font-weight: bold; color: #ff9800;">0</div>
+                    <small>Não iniciados</small>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Tabela de Atividades -->
-    <div class="table-container">
-        <div class="table-header">
-            <h3><i class="fas fa-list-ul"></i> Detalhamento das Atividades</h3>
-            <div class="table-actions">
-                <button class="btn-outline" onclick="exportToCSV()">
-                    <i class="fas fa-download"></i>
-                    Exportar CSV
-                </button>
-                <button class="btn-outline" onclick="filterTable()">
-                    <i class="fas fa-filter"></i>
-                    Filtrar
-                </button>
+        <div class="card full-width">
+            <h3>Detalhamento das Atividades</h3>
+            <div style="overflow-x: auto;">
+                <table id="projectTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Atividade</th>
+                            <th>Responsável</th>
+                            <th>Início Prev.</th>
+                            <th>Término Prev.</th>
+                            <th>Início Real</th>
+                            <th>Término Real</th>
+                            <th>Custo Prev.</th>
+                            <th>Custo Real</th>
+                            <th>Progresso</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="11" style="text-align:center;">Insira o link e clique em Atualizar</td></tr>
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <div class="table-wrapper">
-            <table id="projectTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Atividade</th>
-                        <th>Responsável</th>
-                        <th>Início Prev.</th>
-                        <th>Término Prev.</th>
-                        <th>Início Real</th>
-                        <th>Término Real</th>
-                        <th>Custo Prev.</th>
-                        <th>Custo Real</th>
-                        <th>Progresso</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <tr>
-                        <td colspan="11" style="text-align: center; padding: 60px;">
-                            <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--gray-400); margin-bottom: 16px; display: block;"></i>
-                            <span style="color: var(--gray-600);">Insira o link da planilha e clique em Atualizar Dashboard</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
 
 <script>
 let financeChart = null;
-let statusChart = null;
 
 async function fetchData() {
     const url = document.getElementById('csvUrl').value;
     if(!url.includes("output=csv")) {
-        showNotification('Por favor, use o link de "Publicar na web" do Google Sheets no formato CSV', 'warning');
+        alert("Atenção: Use o link de 'Publicar na Web' com formato CSV!\n\nComo fazer:\n1. No Google Sheets, vá em Arquivo > Compartilhar > Publicar na web\n2. Escolha o formato CSV\n3. Copie o link gerado");
         return;
     }
 
-    // Show loading state
-    document.querySelector('.btn-primary').classList.add('loading');
-    
     try {
         const response = await fetch(url);
         const csvData = await response.text();
         
+        // Parse CSV corretamente considerando aspas
         const rows = parseCSV(csvData);
+        
+        // Pular cabeçalho
         const dataRows = rows.slice(1);
         
         let totalPrevisto = 0;
         let totalReal = 0;
         let progressoSoma = 0;
         let projetosAtivos = 0;
-        let atividadesConcluidas = 0;
         let tableHtml = "";
         
         let emDia = 0;
         let atrasados = 0;
         let naoIniciados = 0;
-        
-        let projetosAcimaOrcamento = 0;
-        let maiorProgresso = { nome: '', progresso: 0 };
 
         dataRows.forEach(cols => {
             if(cols.length < 10) return;
             
+            // Extrair dados conforme as colunas especificadas
             const id = cols[0] || '-';
             const atividade = cols[1] || '-';
             const responsavel = cols[2] || '-';
@@ -781,129 +164,89 @@ async function fetchData() {
             totalPrevisto += custoPrevisto;
             totalReal += custoReal;
             
-            if(custoReal > custoPrevisto) projetosAcimaOrcamento++;
-            
             if(progresso > 0) {
                 progressoSoma += progresso;
                 projetosAtivos++;
             }
             
-            if(progresso === 100) atividadesConcluidas++;
-            
-            if(progresso > maiorProgresso.progresso) {
-                maiorProgresso = { nome: atividade, progresso };
-            }
-            
             const isOver = custoReal > custoPrevisto ? 'over-budget' : '';
             
-            // Determinar status
+            // Determinar status do prazo
             let statusClass = '';
             let statusText = '';
             
             if(progresso === 0) {
                 naoIniciados++;
-                statusClass = 'status-nao-iniciado';
+                statusClass = 'nao-iniciado';
                 statusText = 'Não iniciado';
-            } else if(progresso === 100 || (terminoReal && terminoReal !== '-' && terminoReal.trim() !== '')) {
+            } else if(terminoReal && terminoReal !== '-' && terminoReal.trim() !== '') {
                 emDia++;
-                statusClass = 'status-em-dia';
+                statusClass = 'em-dia';
                 statusText = 'Concluído';
             } else {
-                // Verificar atraso
+                // Verificar se está atrasado comparando com a data prevista
                 const hoje = new Date();
                 if(terminoPrevisto && terminoPrevisto !== '-') {
                     const dataTermino = parseDate(terminoPrevisto);
                     if(dataTermino && hoje > dataTermino && progresso < 100) {
                         atrasados++;
-                        statusClass = 'status-atrasado';
+                        statusClass = 'atrasado';
                         statusText = 'Atrasado';
                     } else {
                         emDia++;
-                        statusClass = 'status-em-dia';
+                        statusClass = 'em-dia';
                         statusText = 'Em dia';
                     }
                 } else {
                     emDia++;
-                    statusClass = 'status-em-dia';
+                    statusClass = 'em-dia';
                     statusText = 'Em dia';
                 }
             }
-            
-            // Determinar cor da barra de progresso
-            let progressClass = '';
-            if(progresso < 30) progressClass = 'danger';
-            else if(progresso < 70) progressClass = 'warning';
 
             tableHtml += `
                 <tr>
-                    <td><span style="font-weight: 600; color: var(--gray-700);">${id}</span></td>
+                    <td>${id}</td>
                     <td><strong>${atividade}</strong></td>
                     <td>${responsavel}</td>
-                    <td>${formatDate(inicioPrevisto)}</td>
-                    <td>${formatDate(terminoPrevisto)}</td>
-                    <td>${formatDate(inicioReal)}</td>
-                    <td>${formatDate(terminoReal)}</td>
-                    <td>${formatMoney(custoPrevisto)}</td>
-                    <td class="${isOver}">${formatMoney(custoReal)}</td>
+                    <td>${inicioPrevisto}</td>
+                    <td>${terminoPrevisto}</td>
+                    <td>${inicioReal || '-'}</td>
+                    <td>${terminoReal || '-'}</td>
+                    <td>R$ ${custoPrevisto.toFixed(2)}</td>
+                    <td class="${isOver}">R$ ${custoReal.toFixed(2)}</td>
                     <td>
-                        <div class="progress-bar">
-                            <div class="progress-track">
-                                <div class="progress-fill ${progressClass}" style="width: ${progresso}%"></div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <div style="background: #eee; border-radius: 5px; height: 10px; width: 80px;">
+                                <div style="background: var(--accent); width: ${progresso}%; height: 100%; border-radius: 5px;"></div>
                             </div>
-                            <span style="font-size: 12px; font-weight: 600;">${progresso}%</span>
+                            ${progresso}%
                         </div>
                     </td>
                     <td>
-                        <span class="status-badge ${statusClass}">
-                            <i class="fas ${getStatusIcon(statusText)}"></i>
-                            ${statusText}
-                        </span>
+                        <span class="status-pill ${statusClass}">${statusText}</span>
                     </td>
                 </tr>`;
         });
 
-        // Atualizar tabela
         document.getElementById('tableBody').innerHTML = tableHtml;
+        document.getElementById('taskCount')?.innerText = dataRows.length;
         
-        // Atualizar KPIs
+        const mediaProgresso = projetosAtivos > 0 ? Math.round(progressoSoma / projetosAtivos) : 0;
+        document.getElementById('avgProgress').innerText = mediaProgresso + "%";
+        
         document.getElementById('totalPrevisto').innerText = formatMoney(totalPrevisto);
         document.getElementById('totalReal').innerText = formatMoney(totalReal);
         
-        const mediaProgresso = projetosAtivos > 0 ? Math.round(progressoSoma / projetosAtivos) : 0;
-        document.getElementById('avgProgress').innerText = mediaProgresso + '%';
-        
-        document.getElementById('totalAtividades').innerText = dataRows.length;
-        document.getElementById('atividadesConcluidas').innerHTML = `<i class="fas fa-check-circle"></i> Concluídas: ${atividadesConcluidas}`;
-        document.getElementById('projetosAtivos').innerHTML = `<i class="fas fa-play-circle"></i> Em andamento: ${projetosAtivos}`;
-        
-        // Variação orçamentária
-        const variacao = totalPrevisto > 0 ? ((totalReal - totalPrevisto) / totalPrevisto * 100).toFixed(1) : 0;
-        const variacaoElement = document.getElementById('variacaoOrcamento');
-        variacaoElement.innerHTML = `<i class="fas ${variacao > 0 ? 'fa-arrow-up trend-down' : 'fa-arrow-down trend-up'}"></i> ${Math.abs(variacao)}% ${variacao > 0 ? 'acima' : 'abaixo'}`;
-        variacaoElement.className = variacao > 0 ? 'trend-down' : 'trend-up';
-        
-        document.getElementById('percentualGasto').innerText = totalPrevisto > 0 ? ((totalReal / totalPrevisto) * 100).toFixed(1) + '% do orçamento' : '0% do orçamento';
-        
-        document.getElementById('totalStatus').innerText = `${emDia + atrasados + naoIniciados} atividades`;
-        
-        // Insights
-        document.getElementById('riscosText').innerHTML = `${projetosAcimaOrcamento} projetos acima do orçamento | ${atrasados} atrasados`;
-        document.getElementById('destaqueText').innerHTML = maiorProgresso.nome ? `${maiorProgresso.nome} - ${maiorProgresso.progresso}% concluído` : 'Nenhum destaque';
-        
-        const performance = totalPrevisto > 0 ? ((totalPrevisto - totalReal) / totalPrevisto * 100).toFixed(1) : 0;
-        document.getElementById('performanceText').innerHTML = `Orçamento: ${performance}% disponível`;
+        document.getElementById('emDia').innerText = emDia;
+        document.getElementById('atrasados').innerText = atrasados;
+        document.getElementById('naoIniciados').innerText = naoIniciados;
 
-        // Atualizar gráficos
-        updateFinanceChart(totalPrevisto, totalReal);
-        updateStatusChart(emDia, atrasados, naoIniciados);
-
-        showNotification('Dashboard atualizado com sucesso!', 'success');
+        updateChart(totalPrevisto, totalReal);
 
     } catch (e) {
         console.error(e);
-        showNotification('Erro ao carregar dados. Verifique o link e as permissões.', 'error');
-    } finally {
-        document.querySelector('.btn-primary').classList.remove('loading');
+        alert("Erro ao conectar com a planilha. Verifique as permissões e o formato dos dados.");
     }
 }
 
@@ -951,8 +294,9 @@ function parseCSV(csvText) {
 }
 
 function parseDate(dateStr) {
-    if(!dateStr || dateStr === '-' || dateStr === '') return null;
+    if(!dateStr || dateStr === '-') return null;
     
+    // Tenta diferentes formatos de data
     const parts = dateStr.split('/');
     if(parts.length === 3) {
         return new Date(parts[2], parts[1] - 1, parts[0]);
@@ -966,60 +310,33 @@ function parseDate(dateStr) {
     return new Date(dateStr);
 }
 
-function formatDate(dateStr) {
-    if(!dateStr || dateStr === '-' || dateStr === '') return '-';
-    return dateStr;
-}
-
 function formatMoney(value) {
     return 'R$ ' + value.toFixed(2).replace('.', ',');
 }
 
-function getStatusIcon(status) {
-    const icons = {
-        'Concluído': 'fa-check-circle',
-        'Em dia': 'fa-clock',
-        'Atrasado': 'fa-exclamation-circle',
-        'Não iniciado': 'fa-hourglass-start'
-    };
-    return icons[status] || 'fa-circle';
-}
-
-function updateFinanceChart(previsto, real) {
+function updateChart(previsto, real) {
     const ctx = document.getElementById('financeChart').getContext('2d');
     if(financeChart) financeChart.destroy();
-    
-    const saldo = Math.max(0, previsto - real);
-    const percentualGasto = previsto > 0 ? (real / previsto * 100).toFixed(1) : 0;
     
     financeChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Gasto Real', 'Saldo Disponível'],
+            labels: ['Gasto Real', 'Saldo Restante'],
             datasets: [{
-                data: [real, saldo],
-                backgroundColor: [
-                    'rgba(39, 174, 96, 0.9)',
-                    'rgba(230, 242, 238, 0.9)'
-                ],
-                borderColor: [
-                    'rgba(39, 174, 96, 1)',
-                    'rgba(200, 215, 210, 1)'
-                ],
-                borderWidth: 2,
-                hoverOffset: 4
+                data: [real, Math.max(0, previsto - real)],
+                backgroundColor: ['#63783D', '#CFE0BC'],
+                borderWidth: 0
             }]
         },
-        options: {
+        options: { 
             cutout: '70%',
             plugins: {
-                legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (context) => {
-                            const label = context.label || '';
-                            const value = context.raw || 0;
-                            return `${label}: ${formatMoney(value)}`;
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.raw || 0;
+                            return label + ': ' + formatMoney(value);
                         }
                     }
                 }
@@ -1027,125 +344,6 @@ function updateFinanceChart(previsto, real) {
         }
     });
 }
-
-function updateStatusChart(emDia, atrasados, naoIniciados) {
-    const ctx = document.getElementById('statusChart').getContext('2d');
-    if(statusChart) statusChart.destroy();
-    
-    statusChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Em dia', 'Atrasados', 'Não iniciados'],
-            datasets: [{
-                data: [emDia, atrasados, naoIniciados],
-                backgroundColor: [
-                    'rgba(46, 125, 50, 0.9)',
-                    'rgba(198, 40, 40, 0.9)',
-                    'rgba(230, 81, 0, 0.9)'
-                ],
-                borderColor: [
-                    'rgba(46, 125, 50, 1)',
-                    'rgba(198, 40, 40, 1)',
-                    'rgba(230, 81, 0, 1)'
-                ],
-                borderWidth: 2,
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { stepSize: 1 }
-                }
-            }
-        }
-    });
-}
-
-function exportToCSV() {
-    const table = document.getElementById('projectTable');
-    const rows = table.querySelectorAll('tr');
-    const csv = [];
-    
-    for (const row of rows) {
-        const cells = row.querySelectorAll('td, th');
-        const rowData = [];
-        for (const cell of cells) {
-            rowData.push('"' + cell.innerText.replace(/"/g, '""') + '"');
-        }
-        csv.push(rowData.join(','));
-    }
-    
-    const csvContent = csv.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'project-pulse-export.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-    
-    showNotification('Arquivo exportado com sucesso!', 'success');
-}
-
-function filterTable() {
-    showNotification('Funcionalidade de filtro em desenvolvimento', 'info');
-}
-
-function showNotification(message, type) {
-    // Criar elemento de notificação
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 16px 24px;
-        background: ${type === 'success' ? '#27AE60' : type === 'warning' ? '#F39C12' : type === 'error' ? '#E74C3C' : '#3498DB'};
-        color: white;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-lg);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    `;
-    
-    const icon = type === 'success' ? 'fa-check-circle' : 
-                 type === 'warning' ? 'fa-exclamation-triangle' : 
-                 type === 'error' ? 'fa-times-circle' : 'fa-info-circle';
-    
-    notification.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// Adicionar animação de slideOut
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 </script>
 </body>
 </html>
