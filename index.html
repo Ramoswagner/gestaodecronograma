@@ -523,6 +523,18 @@ function updateDot(active){
 }
 
 // ===== FETCH =====
+// Deriva URL de outra aba da mesma planilha Google Sheets
+function buildInfoUrl(baseUrl){
+    try{
+        // Remove gid existente e troca por gid=0 (primeira aba, "Informações do Projeto")
+        const u=new URL(baseUrl);
+        u.searchParams.delete('gid');
+        u.searchParams.set('gid','0');
+        u.searchParams.set('_t',Date.now());
+        return u.toString();
+    }catch{return null;}
+}
+
 async function fetchData(silent=false){
     if(!savedUrl||isRefreshing)return;
     isRefreshing=true;
@@ -531,6 +543,19 @@ async function fetchData(silent=false){
         const url=savedUrl+(savedUrl.includes('?')?'&':'?')+'_t='+Date.now();
         const r=await fetch(url);
         if(!r.ok)throw new Error('HTTP '+r.status);
+
+        // Tentar buscar aba de informações do projeto (gid=0)
+        const infoUrl=buildInfoUrl(savedUrl);
+        if(infoUrl){
+            try{
+                const ri=await fetch(infoUrl);
+                if(ri.ok){
+                    const csvInfo=await ri.text();
+                    parseProjectInfo(csvInfo);
+                }
+            }catch(e){/* silencioso - informações são opcionais */}
+        }
+
         processData(await r.text());
         document.getElementById('lastUpdateText').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-BR');
         updateDot(autoRefreshEnabled);
@@ -545,6 +570,32 @@ async function fetchData(silent=false){
         document.getElementById('refreshIcon').classList.remove('fa-spin');
     }
 }
+
+// Lê CSV da aba "Informações do Projeto"
+// Espera: coluna A = rótulo, coluna B = valor
+// Linha 1: Nome do Projeto | [valor]
+// Linha 2: Responsável     | [valor]
+// Linha 3: Instituição     | [valor]
+function parseProjectInfo(csv){
+    const rows=parseCSV(csv);
+    if(!rows||rows.length<1)return;
+    const get=(i)=>(rows[i]&&rows[i][1]?rows[i][1].trim():'');
+    const nome=get(0)||get(1); // tenta linha 1, fallback linha 2
+    const resp=get(1)||get(2);
+    const inst=get(2)||get(3);
+    if(nome||resp||inst){
+        projectInfo={
+            nome: nome||projectInfo.nome,
+            responsavel: resp||projectInfo.responsavel,
+            instituicao: inst||projectInfo.instituicao
+        };
+        if(projectInfo.nome) document.getElementById('projectTitle').textContent=projectInfo.nome;
+        if(projectInfo.responsavel||projectInfo.instituicao)
+            document.getElementById('projectSubtitle').textContent=
+                [projectInfo.responsavel,projectInfo.instituicao].filter(Boolean).join(' · ');
+    }
+}
+
 function refreshNow(){fetchData(false);}
 
 // ===== PROCESS =====
@@ -616,309 +667,496 @@ function generatePPTX(){
 
     const d = lastData;
     const pi = projectInfo;
-    const hoje = new Date().toLocaleDateString('pt-BR');
+    const hoje = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
     const vpct = parseFloat(d.varPct);
     const usedN = parseFloat(d.usedPct);
 
-    // Gerar linhas da tabela de atividades
+    // Linhas da tabela
     const maxR = Math.min(d.rows.length, 14);
     let tblRows = '';
     for(let i=0;i<maxR;i++){
         const r=d.rows[i];
         const stBg = r.st==='Concluído'?'#e3f2fd':r.st==='Em dia'?'#e8f5e9':r.st==='Atrasado'?'#ffebee':'#fff8e1';
         const stCl = r.st==='Concluído'?'#1565C0':r.st==='Em dia'?'#2E7D32':r.st==='Atrasado'?'#C62828':'#E65100';
+        const stIc = r.st==='Concluído'?'fa-check-circle':r.st==='Em dia'?'fa-clock':r.st==='Atrasado'?'fa-exclamation-circle':'fa-hourglass-start';
         const cRCl = r.cR>r.cP?'color:#C62828;font-weight:700':'';
-        tblRows+=`<tr style="background:${i%2===0?'#fff':'#f9fbfa'}">
-            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;max-width:200px">${r.atv}</td>
-            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec">${r.resp}</td>
-            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;text-align:center">${r.fimP}</td>
-            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;text-align:right">${fmoney(r.cP)}</td>
-            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;text-align:right;${cRCl}">${fmoney(r.cR)}</td>
-            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec;text-align:center;font-weight:700">${r.prog}%</td>
-            <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #e8f0ec">
-                <span style="background:${stBg};color:${stCl};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap">${r.st}</span>
+        tblRows+=`<tr style="background:${i%2===0?'#fff':'#f7faf9'}">
+            <td style="padding:5px 10px;font-size:10.5px;border-bottom:1px solid #e8f0ec">${r.atv}</td>
+            <td style="padding:5px 10px;font-size:10.5px;border-bottom:1px solid #e8f0ec;color:#6C757D">${r.resp}</td>
+            <td style="padding:5px 10px;font-size:10.5px;border-bottom:1px solid #e8f0ec;text-align:center">${r.fimP}</td>
+            <td style="padding:5px 10px;font-size:10.5px;border-bottom:1px solid #e8f0ec;text-align:right">${fmoney(r.cP)}</td>
+            <td style="padding:5px 10px;font-size:10.5px;border-bottom:1px solid #e8f0ec;text-align:right;${cRCl}">${fmoney(r.cR)}</td>
+            <td style="padding:5px 10px;font-size:10.5px;border-bottom:1px solid #e8f0ec;text-align:center;font-weight:700">${r.prog}%</td>
+            <td style="padding:5px 10px;font-size:10.5px;border-bottom:1px solid #e8f0ec">
+                <span style="background:${stBg};color:${stCl};padding:2px 9px;border-radius:20px;font-size:9.5px;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:4px">
+                    <i class="fas ${stIc}" style="font-size:9px"></i>${r.st}
+                </span>
             </td>
         </tr>`;
     }
-    if(d.rows.length>14) tblRows+=`<tr><td colspan="7" style="padding:6px 10px;font-size:10px;color:#999;font-style:italic;text-align:center">* Mostrando 14 de ${d.rows.length} atividades</td></tr>`;
+    if(d.rows.length>14) tblRows+=`<tr><td colspan="7" style="padding:5px 10px;font-size:9px;color:#aaa;font-style:italic;text-align:center">* Exibindo ${maxR} de ${d.rows.length} atividades</td></tr>`;
 
-    // Barra de progresso SVG inline
-    const barStatus = (val,total,cor)=>{
-        const pct=total>0?Math.round(val/total*100):0;
-        return `<div style="display:flex;align-items:center;gap:10px">
-            <div style="flex:1;height:10px;background:#e8f0ec;border-radius:5px;overflow:hidden">
-                <div style="width:${pct}%;height:100%;background:${cor};border-radius:5px"></div>
+    const bar=(val,tot,cor)=>{
+        const pct=tot>0?Math.round(val/tot*100):0;
+        return `<div style="display:flex;align-items:center;gap:12px;flex:1">
+            <div style="flex:1;height:8px;background:#e0ede8;border-radius:4px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:${cor};border-radius:4px"></div>
             </div>
-            <span style="font-size:13px;font-weight:700;color:${cor};min-width:36px;text-align:right">${pct}%</span>
+            <span style="font-size:12px;font-weight:700;color:${cor};min-width:32px;text-align:right">${pct}%</span>
         </div>`;
     };
 
-    const html = `<!DOCTYPE html>
+    const html=`<!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <title>Relatório — ${pi.nome||'Projeto'}</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Sora:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'DM Sans',sans-serif;background:#fff;color:#1A1F1E}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#e0e5e3;color:#1A1F1E}
 
-  /* Cada slide ocupa exatamente uma página A4 paisagem */
-  .slide{
-    width:297mm; height:190mm;
-    position:relative; overflow:hidden;
-    page-break-after:always; page-break-inside:avoid;
-    display:flex; flex-direction:column;
-  }
-  .slide:last-child{page-break-after:auto}
+/* Forçar impressão colorida */
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
 
-  @media print{
-    html,body{width:297mm;margin:0;padding:0}
-    .slide{page-break-after:always;page-break-inside:avoid}
-    .no-print{display:none!important}
-  }
-  @page{size:A4 landscape;margin:0}
+.slide{width:297mm;height:210mm;position:relative;overflow:hidden;page-break-after:always;page-break-inside:avoid;background:#fff;margin:0 auto 20px;box-shadow:0 4px 40px rgba(0,0,0,0.15)}
+.slide:last-child{page-break-after:auto}
 
-  /* ── UTILIDADES ── */
-  .accent-bar{position:absolute;left:0;top:0;width:7px;height:100%;background:#F5B041}
-  .header-band{position:absolute;top:0;left:0;right:0;height:52px;background:#1B4D3E;display:flex;align-items:center;padding:0 28px 0 24px}
-  .header-band h2{font-family:'Sora',sans-serif;font-size:17px;font-weight:700;color:#fff;letter-spacing:.3px}
-  .slide-num{position:absolute;bottom:14px;right:22px;font-size:10px;color:#9CA3AF}
-  .footer-brand{position:absolute;bottom:14px;left:22px;font-size:10px;color:#9CA3AF}
+@media print{
+  body{background:#fff;margin:0;padding:0}
+  .slide{margin:0;box-shadow:none;page-break-after:always;page-break-inside:avoid}
+  .no-print{display:none!important}
+}
+@page{size:A4 landscape;margin:0}
 
-  /* ── SLIDE 1: CAPA ── */
-  .capa{background:linear-gradient(135deg,#163d31 0%,#1B4D3E 55%,#2A6E5A 100%)}
-  .capa .blob1{position:absolute;right:-60px;top:-60px;width:280px;height:280px;background:rgba(255,255,255,0.05);border-radius:50%}
-  .capa .blob2{position:absolute;right:30px;bottom:-40px;width:180px;height:180px;background:rgba(245,176,65,0.12);border-radius:50%}
-  .capa-content{position:absolute;left:0;top:0;bottom:0;width:100%;display:flex;flex-direction:column;justify-content:center;padding:0 52px}
-  .capa-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#F5B041;padding:5px 14px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:22px;width:fit-content}
-  .capa h1{font-family:'Sora',sans-serif;font-size:34px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:10px;max-width:580px}
-  .capa .subtitle{font-size:15px;color:rgba(255,255,255,0.65);margin-bottom:28px}
-  .capa-divider{width:80px;height:3px;background:#F5B041;border-radius:2px;margin-bottom:20px}
-  .capa-meta{font-size:12px;color:rgba(255,255,255,0.55);line-height:1.9}
-  .capa-meta strong{color:rgba(255,255,255,0.85)}
+/* ── HEADER BAND (slides internos) ── */
+.hband{position:absolute;top:0;left:0;right:0;height:56px;background:#1B4D3E;display:flex;align-items:center;padding:0 32px;gap:12px}
+.hband-icon{width:32px;height:32px;border-radius:8px;background:rgba(245,176,65,0.2);display:flex;align-items:center;justify-content:center;color:#F5B041;font-size:14px;flex-shrink:0}
+.hband h2{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:#fff;flex:1}
+.hband .slide-badge{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600}
 
-  /* ── SLIDE 2: KPIs ── */
-  .kpi-slide{background:#F4F6F5;padding-top:58px}
-  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:16px 24px 0}
-  .kpi-box{background:#fff;border-radius:12px;padding:18px 16px 14px;border:1px solid #DCEAE6;position:relative;overflow:hidden}
-  .kpi-box::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--c)}
-  .kpi-icon-wrap{width:36px;height:36px;border-radius:8px;background:#E8F3F0;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px}
-  .kpi-val{font-family:'Sora',sans-serif;font-size:20px;font-weight:700;color:#1A1F1E;margin-bottom:4px;line-height:1}
-  .kpi-lbl{font-size:10.5px;color:#6C757D;font-weight:500}
-  .kpi-sub-row{display:flex;justify-content:space-around;padding:12px 24px 0;gap:8px}
-  .kpi-sub{text-align:center;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #DCEAE6;flex:1}
-  .kpi-sub-val{font-size:17px;font-weight:700;color:#1B4D3E;margin-bottom:2px}
-  .kpi-sub-lbl{font-size:10px;color:#9CA3AF}
-  .var-band{margin:10px 24px 0;padding:10px 18px;background:#fff;border-radius:8px;border:1px solid #DCEAE6;display:flex;align-items:center;gap:8px;font-size:12px}
+/* ── RODAPÉ ── */
+.slide-foot{position:absolute;bottom:0;left:0;right:0;height:32px;background:#f7faf9;border-top:1px solid #e0ede8;display:flex;align-items:center;padding:0 28px;gap:8px}
+.slide-foot .brand{font-size:9.5px;color:#9CA3AF;display:flex;align-items:center;gap:5px}
+.slide-foot .brand i{color:#1B4D3E;font-size:9px}
+.slide-foot .pnum{margin-left:auto;font-size:9.5px;color:#C8D5D2;font-weight:600}
 
-  /* ── SLIDE 3: STATUS PRAZOS ── */
-  .status-slide{background:#fff;padding-top:58px}
-  .status-list{padding:16px 24px 0;display:flex;flex-direction:column;gap:12px}
-  .status-row{background:#F8FAFA;border-radius:10px;border:1px solid #E8F0EC;padding:14px 18px;display:grid;grid-template-columns:160px 1fr 50px;align-items:center;gap:16px;border-left:5px solid var(--c)}
-  .status-row-title{font-size:14px;font-weight:700;color:#1A1F1E}
-  .status-row-sub{font-size:11px;color:#9CA3AF;margin-top:2px}
+/* ── BARRA LATERAL DOURADA ── */
+.gold-stripe{position:absolute;left:0;top:0;width:6px;height:100%;background:linear-gradient(180deg,#F5B041,#e8a030)}
 
-  /* ── SLIDE 4: TABELA ── */
-  .table-slide{background:#fff;padding-top:52px}
-  .table-wrap{padding:12px 24px 0;overflow:hidden}
-  table.act{width:100%;border-collapse:collapse}
-  table.act th{background:#1B4D3E;color:#fff;padding:8px 10px;font-size:10.5px;font-weight:600;text-align:left;white-space:nowrap}
-  table.act th:nth-child(3),table.act th:nth-child(4),table.act th:nth-child(5),table.act th:nth-child(6){text-align:right}
-  table.act td:nth-child(3){text-align:center}
-  table.act td:nth-child(4),table.act td:nth-child(5){text-align:right}
-  table.act td:nth-child(6){text-align:center}
+/* ═══════════════════════════════
+   SLIDE 1 — CAPA
+═══════════════════════════════ */
+.capa{background:#1B4D3E;display:flex}
 
-  /* ── SLIDE 5: RISCOS ── */
-  .risk-slide{background:#F4F6F5;padding-top:58px}
-  .risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px 24px 0}
-  .risk-box{background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #DCEAE6;border-top:4px solid var(--c)}
-  .risk-icon{font-size:22px;margin-bottom:8px}
-  .risk-title{font-size:13px;font-weight:700;color:#1A1F1E;margin-bottom:5px}
-  .risk-text{font-size:11.5px;color:#6C757D;line-height:1.55}
+/* Painel esquerdo — conteúdo principal */
+.capa-left{
+  width:62%;height:100%;
+  background:linear-gradient(145deg,#163d31 0%,#1B4D3E 60%,#1e5544 100%);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:36px 44px 28px;position:relative;overflow:hidden;
+}
+.capa-left::after{
+  content:'';position:absolute;top:-80px;left:-60px;
+  width:260px;height:260px;
+  background:radial-gradient(circle,rgba(245,176,65,0.08) 0%,transparent 70%);
+  border-radius:50%;
+}
+.capa-left::before{
+  content:'';position:absolute;bottom:-50px;left:60px;
+  width:180px;height:180px;
+  background:radial-gradient(circle,rgba(255,255,255,0.04) 0%,transparent 70%);
+  border-radius:50%;
+}
 
-  /* ── SLIDE 6: ENCERRAMENTO ── */
-  .closing{background:linear-gradient(135deg,#163d31 0%,#1B4D3E 55%,#2A6E5A 100%);display:flex;align-items:center;justify-content:center;text-align:center}
-  .closing-inner{position:relative;z-index:1}
-  .closing-blob{position:absolute;right:-60px;top:-80px;width:300px;height:300px;background:rgba(255,255,255,0.04);border-radius:50%}
-  .closing h1{font-family:'Sora',sans-serif;font-size:44px;font-weight:800;color:#fff;margin-bottom:12px}
-  .closing p{font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:24px}
-  .closing-tag{display:inline-block;background:#F5B041;color:#163d31;padding:7px 20px;border-radius:20px;font-size:12px;font-weight:700}
+/* Topo: badge produto */
+.capa-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.09);
+  border:1px solid rgba(255,255,255,0.15);
+  color:#F5B041;padding:6px 16px;border-radius:30px;
+  font-size:9.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;
+  width:fit-content;position:relative;z-index:1;
+}
+.capa-badge i{font-size:10px}
 
-  /* Botão de impressão - não aparece no PDF */
-  #print-btn{
-    position:fixed;bottom:30px;right:30px;
-    background:#1B4D3E;color:#fff;border:none;
-    padding:14px 26px;border-radius:50px;
-    font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;
-    cursor:pointer;box-shadow:0 8px 24px rgba(27,77,62,0.35);
-    display:flex;align-items:center;gap:10px;z-index:9999;
-    transition:all .25s
-  }
-  #print-btn:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(27,77,62,0.45)}
+/* Centro: nome do projeto */
+.capa-center{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 0}
+.capa-label{font-size:10px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.capa-projeto{
+  font-family:'Sora',sans-serif;font-size:38px;font-weight:900;
+  color:#fff;line-height:1.1;margin-bottom:14px;
+  text-shadow:0 2px 20px rgba(0,0,0,0.25);
+}
+.capa-status-row{display:flex;align-items:center;gap:10px;margin-top:4px}
+.capa-status-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(39,174,96,0.2);border:1px solid rgba(39,174,96,0.35);
+  color:#4dd98a;padding:5px 14px;border-radius:20px;font-size:11px;font-weight:600;
+}
+.capa-status-chip i{font-size:10px}
+.capa-divider{width:2px;height:14px;background:rgba(255,255,255,0.15);border-radius:1px}
+.capa-atividades{font-size:11px;color:rgba(255,255,255,0.45)}
+
+/* Rodapé da capa: data esquerda, responsável direita */
+.capa-foot{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  position:relative;z-index:1;padding-top:16px;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.capa-foot-date{display:flex;align-items:center;gap:7px;font-size:10.5px;color:rgba(255,255,255,0.4)}
+.capa-foot-date i{font-size:10px;color:rgba(245,176,65,0.6)}
+.capa-foot-resp{text-align:right}
+.capa-foot-resp-label{font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.capa-foot-resp-name{font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.capa-foot-resp-name i{color:#F5B041;font-size:11px}
+
+/* Painel direito — visual / instituição */
+.capa-right{
+  width:38%;height:100%;
+  background:linear-gradient(160deg,#F5B041 0%,#e8960a 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:36px 32px;gap:0;position:relative;overflow:hidden;
+}
+.capa-right::before{
+  content:'';position:absolute;top:-80px;right:-80px;
+  width:280px;height:280px;
+  background:rgba(255,255,255,0.1);border-radius:50%;
+}
+.capa-right::after{
+  content:'';position:absolute;bottom:-50px;left:-30px;
+  width:150px;height:150px;
+  background:rgba(0,0,0,0.06);border-radius:50%;
+}
+.capa-right-icon-wrap{
+  width:70px;height:70px;border-radius:20px;
+  background:rgba(27,77,62,0.15);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:22px;position:relative;z-index:1;
+}
+.capa-right-icon-wrap i{font-size:28px;color:#1B4D3E}
+.capa-inst{position:relative;z-index:1;text-align:center}
+.capa-inst-label{font-size:9.5px;font-weight:600;color:rgba(27,77,62,0.55);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px}
+.capa-inst-name{font-family:'Sora',sans-serif;font-size:17px;font-weight:800;color:#1B4D3E;line-height:1.25;text-align:center}
+.capa-right-brand{
+  position:absolute;bottom:24px;
+  font-size:9px;font-weight:600;color:rgba(27,77,62,0.4);
+  letter-spacing:1px;text-transform:uppercase;z-index:1;
+  display:flex;align-items:center;gap:5px;
+}
+.capa-right-brand i{font-size:8px}
+
+/* ═══════════════════════════════
+   SLIDE 2 — KPIs
+═══════════════════════════════ */
+.kpi-slide{background:#F4F6F5;padding-top:56px;padding-bottom:32px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 28px 0}
+.kpi-box{background:#fff;border-radius:12px;padding:18px 16px 15px;border:1px solid #DCEAE6;position:relative;overflow:hidden}
+.kpi-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c)}
+.kpi-icon{width:38px;height:38px;border-radius:10px;background:var(--csoft);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.kpi-icon i{font-size:15px;color:var(--c)}
+.kpi-val{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:#1A1F1E;margin-bottom:3px;line-height:1}
+.kpi-lbl{font-size:10px;color:#9CA3AF;font-weight:500;line-height:1.3}
+.kpi-sub-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:10px 28px 0}
+.kpi-sub{background:#fff;border-radius:10px;border:1px solid #DCEAE6;padding:10px 12px;text-align:center}
+.kpi-sub-val{font-size:18px;font-weight:700;margin-bottom:2px}
+.kpi-sub-lbl{font-size:9.5px;color:#9CA3AF}
+.var-band{margin:10px 28px 0;background:#fff;border-radius:8px;border:1px solid #DCEAE6;padding:9px 16px;display:flex;align-items:center;gap:10px;font-size:11.5px}
+.var-band i{font-size:13px}
+
+/* ═══════════════════════════════
+   SLIDE 3 — STATUS PRAZOS
+═══════════════════════════════ */
+.status-slide{background:#fff;padding-top:56px;padding-bottom:32px}
+.status-list{padding:16px 28px 0;display:flex;flex-direction:column;gap:14px}
+.srow{background:#f7faf9;border-radius:12px;border:1px solid #e0ede8;border-left:5px solid var(--c);padding:16px 20px;display:flex;align-items:center;gap:20px}
+.srow-ico{width:42px;height:42px;border-radius:10px;background:var(--csoft);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.srow-ico i{font-size:16px;color:var(--c)}
+.srow-text{width:160px;flex-shrink:0}
+.srow-title{font-size:14px;font-weight:700;color:#1A1F1E}
+.srow-sub{font-size:11px;color:#9CA3AF;margin-top:2px}
+
+/* ═══════════════════════════════
+   SLIDE 5 — RISCOS
+═══════════════════════════════ */
+.risk-slide{background:#F4F6F5;padding-top:56px;padding-bottom:32px}
+.risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 28px 0}
+.rbox{background:#fff;border-radius:12px;border:1px solid #DCEAE6;border-top:4px solid var(--c);padding:18px 20px}
+.rbox-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rbox-ico{width:34px;height:34px;border-radius:9px;background:var(--csoft);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rbox-ico i{font-size:14px;color:var(--c)}
+.rbox-title{font-size:13px;font-weight:700;color:#1A1F1E}
+.rbox-text{font-size:11.5px;color:#6C757D;line-height:1.6;padding-left:44px}
+
+/* ═══════════════════════════════
+   SLIDE 6 — ENCERRAMENTO
+═══════════════════════════════ */
+.closing{background:#1B4D3E;display:flex}
+.closing-left{width:58%;display:flex;flex-direction:column;justify-content:center;padding:50px 52px;position:relative;overflow:hidden}
+.closing-left::before{content:'';position:absolute;top:-60px;left:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(245,176,65,0.1) 0%,transparent 70%);border-radius:50%}
+.closing-obg{font-family:'Sora',sans-serif;font-size:52px;font-weight:900;color:#fff;line-height:1;margin-bottom:16px;position:relative;z-index:1}
+.closing-sub{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;max-width:360px;position:relative;z-index:1}
+.closing-right{width:42%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;background:rgba(0,0,0,0.15);position:relative;overflow:hidden}
+.closing-right::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:rgba(255,255,255,0.04);border-radius:50%}
+.closing-inst-chip{background:#F5B041;color:#1B4D3E;border-radius:16px;padding:10px 24px;font-family:'Sora',sans-serif;font-size:15px;font-weight:800;text-align:center;position:relative;z-index:1;max-width:260px;line-height:1.3}
+.closing-date{margin-top:18px;font-size:11px;color:rgba(255,255,255,0.3);display:flex;align-items:center;gap:6px;position:relative;z-index:1}
+.closing-date i{color:rgba(245,176,65,0.5)}
+.closing-brand{position:absolute;bottom:24px;left:52px;font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:5px;z-index:1}
+
+/* Botão de impressão */
+#print-btn{
+  position:fixed;bottom:28px;right:28px;
+  background:#1B4D3E;color:#fff;border:none;
+  padding:13px 26px;border-radius:50px;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;
+  cursor:pointer;box-shadow:0 8px 28px rgba(27,77,62,0.4);
+  display:flex;align-items:center;gap:9px;z-index:9999;
+  transition:all .2s
+}
+#print-btn:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(27,77,62,0.5)}
+#print-btn i{font-size:15px}
 </style>
 </head>
 <body>
 
-<!-- ── SLIDE 1: CAPA ── -->
+<!-- ═══ SLIDE 1: CAPA ═══ -->
 <div class="slide capa">
-  <div class="accent-bar"></div>
-  <div class="blob1"></div>
-  <div class="blob2"></div>
-  <div class="capa-content">
-    <div class="capa-tag">📊 Project Pulse BI</div>
-    <h1>${pi.nome||'Relatório de Status do Projeto'}</h1>
-    <div class="subtitle">Relatório de Status · ${hoje}</div>
-    <div class="capa-divider"></div>
-    <div class="capa-meta">
-      ${pi.responsavel?`<div><strong>Responsável:</strong> ${pi.responsavel}</div>`:''}
-      ${pi.instituicao?`<div><strong>Instituição:</strong> ${pi.instituicao}</div>`:''}
-      <div><strong>Data de geração:</strong> ${hoje}</div>
+  <!-- PAINEL ESQUERDO -->
+  <div class="capa-left">
+    <!-- Badge produto -->
+    <div>
+      <div class="capa-badge"><i class="fas fa-chart-line"></i>Project Pulse BI · Relatório de Status</div>
+    </div>
+
+    <!-- Nome do projeto (centro) -->
+    <div class="capa-center">
+      <div class="capa-label">Projeto</div>
+      <div class="capa-projeto">${pi.nome||'Relatório de Status'}</div>
+      <div class="capa-status-row">
+        <div class="capa-status-chip">
+          <i class="fas fa-circle-dot"></i>Em andamento
+        </div>
+        <div class="capa-divider"></div>
+        <div class="capa-atividades">${d.total} atividades · ${d.concluidas} concluídas</div>
+      </div>
+    </div>
+
+    <!-- Rodapé: data (esq) + responsável (dir) -->
+    <div class="capa-foot">
+      <div class="capa-foot-date">
+        <i class="fas fa-calendar-day"></i>
+        ${hoje}
+      </div>
+      ${pi.responsavel?`
+      <div class="capa-foot-resp">
+        <div class="capa-foot-resp-label">Responsável</div>
+        <div class="capa-foot-resp-name"><i class="fas fa-user-tie"></i>${pi.responsavel}</div>
+      </div>`:''}
     </div>
   </div>
-  <div class="slide-num">1 / 6</div>
+
+  <!-- PAINEL DIREITO -->
+  <div class="capa-right">
+    <div class="capa-right-icon-wrap">
+      <i class="fas fa-building-columns"></i>
+    </div>
+    <div class="capa-inst">
+      <div class="capa-inst-label">Instituição</div>
+      <div class="capa-inst-name">${pi.instituicao||'—'}</div>
+    </div>
+    <div class="capa-right-brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+  </div>
 </div>
 
-<!-- ── SLIDE 2: RESUMO EXECUTIVO ── -->
+<!-- ═══ SLIDE 2: RESUMO EXECUTIVO ═══ -->
 <div class="slide kpi-slide">
-  <div class="accent-bar"></div>
-  <div class="header-band"><h2>Resumo Executivo</h2></div>
+  <div class="gold-stripe"></div>
+  <div class="hband">
+    <div class="hband-icon"><i class="fas fa-gauge-high"></i></div>
+    <h2>Resumo Executivo</h2>
+    <div class="slide-badge"><i class="fas fa-calendar-check"></i> ${hoje}</div>
+  </div>
   <div class="kpi-grid">
-    <div class="kpi-box" style="--c:#1B4D3E">
-      <div class="kpi-icon-wrap">💰</div>
+    <div class="kpi-box" style="--c:#1B4D3E;--csoft:#E8F3F0">
+      <div class="kpi-icon"><i class="fas fa-coins"></i></div>
       <div class="kpi-val">${fmoney(d.totalPrev)}</div>
       <div class="kpi-lbl">Orçamento Previsto</div>
     </div>
-    <div class="kpi-box" style="--c:${vpct>0?'#E74C3C':'#27AE60'}">
-      <div class="kpi-icon-wrap">📊</div>
+    <div class="kpi-box" style="--c:${vpct>0?'#C62828':'#2E7D32'};--csoft:${vpct>0?'#FFEBEE':'#E8F5E9'}">
+      <div class="kpi-icon"><i class="fas fa-sack-dollar"></i></div>
       <div class="kpi-val">${fmoney(d.totalReal)}</div>
       <div class="kpi-lbl">Custo Real Acumulado</div>
     </div>
-    <div class="kpi-box" style="--c:#1B4D3E">
-      <div class="kpi-icon-wrap">📈</div>
+    <div class="kpi-box" style="--c:#1565C0;--csoft:#E3F2FD">
+      <div class="kpi-icon"><i class="fas fa-chart-pie"></i></div>
       <div class="kpi-val">${d.avgProg}%</div>
       <div class="kpi-lbl">Progresso Médio</div>
     </div>
-    <div class="kpi-box" style="--c:#1B4D3E">
-      <div class="kpi-icon-wrap">📋</div>
+    <div class="kpi-box" style="--c:#E65100;--csoft:#FFF3E0">
+      <div class="kpi-icon"><i class="fas fa-list-check"></i></div>
       <div class="kpi-val">${d.total}</div>
       <div class="kpi-lbl">Total de Atividades</div>
     </div>
   </div>
   <div class="kpi-sub-row">
-    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#27AE60">${d.concluidas}</div><div class="kpi-sub-lbl">Concluídas</div></div>
-    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#3498DB">${d.emAndamento}</div><div class="kpi-sub-lbl">Em andamento</div></div>
+    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#2E7D32">${d.concluidas}</div><div class="kpi-sub-lbl">Concluídas</div></div>
+    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#1565C0">${d.emAndamento}</div><div class="kpi-sub-lbl">Em andamento</div></div>
     <div class="kpi-sub"><div class="kpi-sub-val" style="color:#E65100">${d.naoIniciados}</div><div class="kpi-sub-lbl">Não iniciadas</div></div>
-    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#E74C3C">${d.sobreOrcamento}</div><div class="kpi-sub-lbl">Acima do orçamento</div></div>
+    <div class="kpi-sub"><div class="kpi-sub-val" style="color:#C62828">${d.sobreOrcamento}</div><div class="kpi-sub-lbl">Acima do orçamento</div></div>
   </div>
   <div class="var-band">
-    <span style="font-size:16px">${vpct>0?'📈':'📉'}</span>
-    <span style="font-weight:600;color:${vpct>0?'#C62828':'#2E7D32'}">Variação orçamentária: ${Math.abs(d.varPct)}% ${vpct>0?'acima':'abaixo'} do previsto</span>
-    <span style="margin-left:auto;color:#9CA3AF;font-size:11px">${usedN}% do orçamento utilizado</span>
+    <i class="fas fa-${vpct>0?'arrow-trend-up':'arrow-trend-down'}" style="color:${vpct>0?'#C62828':'#2E7D32'}"></i>
+    <span style="font-weight:700;color:${vpct>0?'#C62828':'#2E7D32'}">Variação orçamentária: ${Math.abs(d.varPct)}% ${vpct>0?'acima':'abaixo'} do previsto</span>
+    <span style="margin-left:auto;color:#9CA3AF;font-size:10.5px"><i class="fas fa-circle-half-stroke"></i> ${usedN}% do orçamento utilizado</span>
   </div>
-  <div class="footer-brand">Project Pulse BI</div>
-  <div class="slide-num">2 / 6</div>
+  <div class="slide-foot">
+    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="pnum">2 / 6</div>
+  </div>
 </div>
 
-<!-- ── SLIDE 3: STATUS DOS PRAZOS ── -->
+<!-- ═══ SLIDE 3: STATUS DOS PRAZOS ═══ -->
 <div class="slide status-slide">
-  <div class="accent-bar"></div>
-  <div class="header-band"><h2>Status dos Prazos</h2></div>
+  <div class="gold-stripe"></div>
+  <div class="hband">
+    <div class="hband-icon"><i class="fas fa-calendar-xmark"></i></div>
+    <h2>Status dos Prazos</h2>
+    <div class="slide-badge">${d.total} atividades analisadas</div>
+  </div>
   <div class="status-list">
-    <div class="status-row" style="--c:#27AE60">
-      <div><div class="status-row-title">✅ Em Dia</div><div class="status-row-sub">${d.emDia} atividade${d.emDia!==1?'s':''}</div></div>
-      <div>${barStatus(d.emDia,d.total,'#27AE60')}</div>
-      <div style="font-size:13px;font-weight:700;color:#27AE60;text-align:right">${d.total>0?Math.round(d.emDia/d.total*100):0}%</div>
+    <div class="srow" style="--c:#2E7D32;--csoft:#E8F5E9">
+      <div class="srow-ico"><i class="fas fa-circle-check"></i></div>
+      <div class="srow-text">
+        <div class="srow-title">Em Dia</div>
+        <div class="srow-sub">${d.emDia} atividade${d.emDia!==1?'s':''}</div>
+      </div>
+      ${bar(d.emDia,d.total,'#2E7D32')}
     </div>
-    <div class="status-row" style="--c:#E74C3C">
-      <div><div class="status-row-title">🔴 Atrasados</div><div class="status-row-sub">${d.atrasados} atividade${d.atrasados!==1?'s':''}</div></div>
-      <div>${barStatus(d.atrasados,d.total,'#E74C3C')}</div>
-      <div style="font-size:13px;font-weight:700;color:#E74C3C;text-align:right">${d.total>0?Math.round(d.atrasados/d.total*100):0}%</div>
+    <div class="srow" style="--c:#C62828;--csoft:#FFEBEE">
+      <div class="srow-ico"><i class="fas fa-triangle-exclamation"></i></div>
+      <div class="srow-text">
+        <div class="srow-title">Atrasadas</div>
+        <div class="srow-sub">${d.atrasados} atividade${d.atrasados!==1?'s':''}</div>
+      </div>
+      ${bar(d.atrasados,d.total,'#C62828')}
     </div>
-    <div class="status-row" style="--c:#E65100">
-      <div><div class="status-row-title">⏳ Não Iniciados</div><div class="status-row-sub">${d.naoIniciados} atividade${d.naoIniciados!==1?'s':''}</div></div>
-      <div>${barStatus(d.naoIniciados,d.total,'#E65100')}</div>
-      <div style="font-size:13px;font-weight:700;color:#E65100;text-align:right">${d.total>0?Math.round(d.naoIniciados/d.total*100):0}%</div>
+    <div class="srow" style="--c:#E65100;--csoft:#FFF3E0">
+      <div class="srow-ico"><i class="fas fa-hourglass-start"></i></div>
+      <div class="srow-text">
+        <div class="srow-title">Não Iniciadas</div>
+        <div class="srow-sub">${d.naoIniciados} atividade${d.naoIniciados!==1?'s':''}</div>
+      </div>
+      ${bar(d.naoIniciados,d.total,'#E65100')}
     </div>
   </div>
-  <div class="footer-brand">Project Pulse BI</div>
-  <div class="slide-num">3 / 6</div>
+  <div class="slide-foot">
+    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="pnum">3 / 6</div>
+  </div>
 </div>
 
-<!-- ── SLIDE 4: TABELA DE ATIVIDADES ── -->
-<div class="slide table-slide">
-  <div class="accent-bar"></div>
-  <div class="header-band"><h2>Detalhamento das Atividades</h2></div>
-  <div class="table-wrap">
-    <table class="act">
-      <thead><tr>
-        <th>Atividade</th><th>Responsável</th><th style="text-align:center">Término Prev.</th>
-        <th style="text-align:right">Custo Prev.</th><th style="text-align:right">Custo Real</th>
-        <th style="text-align:center">%</th><th>Status</th>
+<!-- ═══ SLIDE 4: TABELA ═══ -->
+<div class="slide" style="background:#fff;padding-top:56px;padding-bottom:32px">
+  <div class="gold-stripe"></div>
+  <div class="hband">
+    <div class="hband-icon"><i class="fas fa-table-list"></i></div>
+    <h2>Detalhamento das Atividades</h2>
+    <div class="slide-badge">${d.rows.length} registros</div>
+  </div>
+  <div style="padding:12px 28px 0;overflow:hidden">
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:#1B4D3E">
+        <th style="padding:8px 10px;font-size:10px;font-weight:600;color:#fff;text-align:left">Atividade</th>
+        <th style="padding:8px 10px;font-size:10px;font-weight:600;color:#fff;text-align:left">Responsável</th>
+        <th style="padding:8px 10px;font-size:10px;font-weight:600;color:#fff;text-align:center">Término Prev.</th>
+        <th style="padding:8px 10px;font-size:10px;font-weight:600;color:#fff;text-align:right">Custo Prev.</th>
+        <th style="padding:8px 10px;font-size:10px;font-weight:600;color:#fff;text-align:right">Custo Real</th>
+        <th style="padding:8px 10px;font-size:10px;font-weight:600;color:#fff;text-align:center">%</th>
+        <th style="padding:8px 10px;font-size:10px;font-weight:600;color:#fff;text-align:left">Status</th>
       </tr></thead>
       <tbody>${tblRows}</tbody>
     </table>
   </div>
-  <div class="footer-brand">Project Pulse BI</div>
-  <div class="slide-num">4 / 6</div>
+  <div class="slide-foot">
+    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="pnum">4 / 6</div>
+  </div>
 </div>
 
-<!-- ── SLIDE 5: RISCOS E INSIGHTS ── -->
+<!-- ═══ SLIDE 5: RISCOS E INSIGHTS ═══ -->
 <div class="slide risk-slide">
-  <div class="accent-bar"></div>
-  <div class="header-band"><h2>Riscos e Insights</h2></div>
+  <div class="gold-stripe"></div>
+  <div class="hband">
+    <div class="hband-icon"><i class="fas fa-shield-halved"></i></div>
+    <h2>Riscos e Insights</h2>
+    <div class="slide-badge">Análise automática</div>
+  </div>
   <div class="risk-grid">
-    <div class="risk-box" style="--c:#E74C3C">
-      <div class="risk-icon">⚠️</div>
-      <div class="risk-title">Riscos Financeiros</div>
-      <div class="risk-text">${d.sobreOrcamento} atividade${d.sobreOrcamento!==1?'s':''} com custo real acima do previsto. Revisão orçamentária ${d.sobreOrcamento>0?'recomendada':'não necessária no momento'}.</div>
+    <div class="rbox" style="--c:#C62828;--csoft:#FFEBEE">
+      <div class="rbox-head">
+        <div class="rbox-ico"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="rbox-title">Riscos Financeiros</div>
+      </div>
+      <div class="rbox-text">${d.sobreOrcamento} atividade${d.sobreOrcamento!==1?'s':''} com custo real acima do previsto. Revisão orçamentária ${d.sobreOrcamento>0?'<strong>recomendada</strong>':'não necessária no momento'}.</div>
     </div>
-    <div class="risk-box" style="--c:#E65100">
-      <div class="risk-icon">📅</div>
-      <div class="risk-title">Riscos de Prazo</div>
-      <div class="risk-text">${d.atrasados} atividade${d.atrasados!==1?'s':''} com prazo vencido e ainda em andamento. ${d.atrasados>0?'Ação corretiva necessária.':'Cronograma sob controle.'}</div>
+    <div class="rbox" style="--c:#E65100;--csoft:#FFF3E0">
+      <div class="rbox-head">
+        <div class="rbox-ico"><i class="fas fa-calendar-xmark"></i></div>
+        <div class="rbox-title">Riscos de Prazo</div>
+      </div>
+      <div class="rbox-text">${d.atrasados} atividade${d.atrasados!==1?'s':''} com prazo vencido e ainda em andamento. ${d.atrasados>0?'<strong>Ação corretiva necessária.</strong>':'Cronograma sob controle.'}</div>
     </div>
-    <div class="risk-box" style="--c:#1B4D3E">
-      <div class="risk-icon">🏆</div>
-      <div class="risk-title">Destaque do Período</div>
-      <div class="risk-text">${d.destaque?`Atividade com maior progresso: <strong>${d.destaque}</strong>.`:'Nenhum destaque identificado neste período.'}</div>
+    <div class="rbox" style="--c:#1B4D3E;--csoft:#E8F3F0">
+      <div class="rbox-head">
+        <div class="rbox-ico"><i class="fas fa-trophy"></i></div>
+        <div class="rbox-title">Destaque do Período</div>
+      </div>
+      <div class="rbox-text">${d.destaque?`Atividade com maior avanço: <strong>${d.destaque}</strong>.`:'Nenhum destaque identificado neste período.'}</div>
     </div>
-    <div class="risk-box" style="--c:${vpct>10?'#E74C3C':vpct<0?'#27AE60':'#3498DB'}">
-      <div class="risk-icon">💡</div>
-      <div class="risk-title">Performance Orçamentária</div>
-      <div class="risk-text">${vpct>10?`Custo ${d.varPct}% acima do previsto — revisão de escopo e orçamento urgente.`:vpct<0?`Custo ${Math.abs(d.varPct)}% abaixo do previsto — eficiência positiva na execução.`:`Execução financeira dentro dos parâmetros esperados (variação de ${Math.abs(d.varPct)}%).`}</div>
+    <div class="rbox" style="--c:${vpct>10?'#C62828':vpct<0?'#2E7D32':'#1565C0'};--csoft:${vpct>10?'#FFEBEE':vpct<0?'#E8F5E9':'#E3F2FD'}">
+      <div class="rbox-head">
+        <div class="rbox-ico"><i class="fas fa-lightbulb"></i></div>
+        <div class="rbox-title">Performance Orçamentária</div>
+      </div>
+      <div class="rbox-text">${vpct>10?`Custo <strong>${d.varPct}%</strong> acima do previsto — revisão de escopo urgente.`:vpct<0?`Custo <strong>${Math.abs(d.varPct)}%</strong> abaixo do previsto — eficiência positiva.`:`Execução dentro dos parâmetros esperados (variação de ${Math.abs(d.varPct)}%).`}</div>
     </div>
   </div>
-  <div class="footer-brand">Project Pulse BI</div>
-  <div class="slide-num">5 / 6</div>
+  <div class="slide-foot">
+    <div class="brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
+    <div class="pnum">5 / 6</div>
+  </div>
 </div>
 
-<!-- ── SLIDE 6: ENCERRAMENTO ── -->
+<!-- ═══ SLIDE 6: ENCERRAMENTO ═══ -->
 <div class="slide closing">
-  <div class="closing-blob"></div>
-  <div class="accent-bar"></div>
-  <div class="closing-inner">
-    <h1>Obrigado</h1>
-    <p>Relatório gerado automaticamente pelo Project Pulse BI · ${hoje}</p>
-    ${pi.instituicao?`<div class="closing-tag">${pi.instituicao}</div>`:'<div class="closing-tag">Project Pulse BI</div>'}
+  <!-- Esquerda -->
+  <div class="closing-left">
+    <div class="closing-obg">Obrigado.</div>
+    <div class="closing-sub">Relatório gerado automaticamente pelo <strong style="color:rgba(255,255,255,0.75)">Project Pulse BI</strong>. Os dados refletem o estado da planilha no momento da geração.</div>
+    <div class="closing-brand"><i class="fas fa-chart-mixed"></i>Project Pulse BI</div>
   </div>
-  <div class="slide-num" style="color:rgba(255,255,255,0.35)">6 / 6</div>
+  <!-- Direita -->
+  <div class="closing-right">
+    <div class="closing-inst-chip">${pi.instituicao||'Project Pulse BI'}</div>
+    <div class="closing-date"><i class="fas fa-calendar-day"></i>${hoje}</div>
+  </div>
+  <div class="gold-stripe"></div>
 </div>
 
-<!-- Botão flutuante de impressão -->
+<!-- Botão flutuante -->
 <button id="print-btn" class="no-print" onclick="window.print()">
-  🖨️ Salvar como PDF
+  <i class="fas fa-file-pdf"></i>Salvar como PDF
 </button>
 
 </body>
 </html>`;
 
-    // Abrir em nova janela e acionar print
-    const win = window.open('','_blank','width=1200,height=800');
-    if(!win){ showToast('Permita pop-ups para gerar o relatório','warning'); return; }
+    const win=window.open('','_blank','width=1280,height=900');
+    if(!win){showToast('Permita pop-ups para gerar o relatório','warning');return;}
     win.document.write(html);
     win.document.close();
-    showToast('Relatório aberto! Clique em "Salvar como PDF" na nova janela.','success');
+    showToast('Relatório pronto! Clique em "Salvar como PDF" na nova janela.','success');
 }
 
 // ===== SAMPLE DATA =====
